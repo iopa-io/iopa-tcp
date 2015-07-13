@@ -22,7 +22,7 @@ var util = require('util');
 var events = require('events');
 var Duplex = require('stream').Duplex;
 
-var iopaStream = require('iopa-server').Stream;
+var iopaStream = require('iopa-common-stream');
 var iopaContextFactory = require('iopa').context.factory;
 
 /* *********************************************************

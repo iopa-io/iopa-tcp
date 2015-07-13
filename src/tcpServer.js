@@ -22,7 +22,7 @@ var net = require('net');
 var util = require('util');
 var events = require('events');
 var TcpClient = require('./tcpClient.js');
-var iopaStream = require('iopa-server').Stream;
+var iopaStream = require('iopa-common-stream');
 
 Promise.promisifyAll(net);
 
