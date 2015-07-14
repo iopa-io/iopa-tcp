@@ -192,7 +192,7 @@ TcpServer.prototype.connect = function TcpServer_connect(urlStr){
 TcpServer.prototype.createResponseRequest = function TcpServer_createResponseRequest(originalContext, path, method){
   var urlStr = originalContext["iopa.Scheme"] + 
    "://" +
-   originalContext["server.remoteAddress"] + ":" + originalContext["server.remotePort"] + 
+   originalContext["server.RemoteAddress"] + ":" + originalContext["server.RemotePort"] + 
   originalContext["iopa.PathBase"] +
   originalContext["iopa.Path"] + path;
   
