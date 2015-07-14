@@ -106,7 +106,7 @@ Object.defineProperty(TcpServer.prototype, "port", { get: function () { return t
 Object.defineProperty(TcpServer.prototype, "address", { get: function () { return this._address; } });
 
 TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
-  var context = iopaContextFactory.create();
+  var context = iopaContextFactory.createContext();
    context["iopa.Method"] = "TCP-CONNECT";
  
   context["server.TLS"] = false;
