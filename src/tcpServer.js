@@ -138,6 +138,7 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
 };
 
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
+  context["iopa.Events"].emit("disconnect");
   delete this._connections[context["server.SessionId"]];
   if (context["server.RawStream"])
     context["server.RawStream"].removeAllListeners('end');
