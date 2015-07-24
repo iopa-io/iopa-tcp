@@ -1,0 +1,21 @@
+machine:
+  node:
+    version: 0.12.0
+    
+test:
+    override:
+        - mkdir -p $CIRCLE_TEST_REPORTS/mocha && node ./node_modules/.bin/mocha -R xunit > $CIRCLE_TEST_REPORTS/mocha/testResults.xml
+        
+deployment:
+  hub:
+    branch: master
+    commands:
+      - git config user.email "robot@circleci.com"
+      - git config user.name "CircleCI"
+      - git config --global push.default matching
+      - git checkout $BRANCH
+      - echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" >> ~/.npmrc
+      - npm version patch --message "auto-publish %s via CircleCI [ci skip] [skip ci]"
+      - git remote set-url origin ssh://git@github.com/${CIRCLE_PROJECT_REPONAME}
+      - git push
+      - npm publish
