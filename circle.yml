@@ -4,7 +4,7 @@ machine:
     
 test:
     override:
-        - MOCHA_FILE=${CIRCLE_TEST_REPORTS}/mocha/testResults.xml node ./node_modules/.bin/mocha --reporter junit-mocha-reporter
+        - MOCHA_FILE=${CIRCLE_TEST_REPORTS}/mocha/testResults.xml node ./node_modules/.bin/mocha --reporter mocha-junit-reporter
         
 deployment:
   hub:
