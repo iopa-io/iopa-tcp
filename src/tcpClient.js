@@ -58,13 +58,13 @@ util.inherits(TcpClient, events.EventEmitter);
  * @public
  * @constructor
  */
- TcpClient.prototype.connect = function TcpClient_connect(urlStr){
+TcpClient.prototype.connect = function TcpClient_connect(urlStr){
      
   var channelContext = iopaContextFactory.createRequest(urlStr, "TCP-CONNECT");
   
   channelContext["tcp._BaseUrl"] = urlStr;
   channelContext["server.createRequest"] = TcpClient_CreateRequest.bind(this, channelContext);
- 
+  
   var that = this;
   return new Promise(function(resolve, reject){
       var socket = net.createConnection(
@@ -151,6 +151,7 @@ function TcpClient_CreateRequest(channelContext, path, method){
  * @public
  */
 TcpClient.prototype.close = function TcpClient_close(channelContext) {
+    channelContext["iopa.Events"].emit("disconnect");
     iopaContextFactory.dispose(channelContext);
 }
 
