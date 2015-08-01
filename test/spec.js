@@ -79,4 +79,8 @@ describe('#TCPServer()', function() {
         return null;
        })
     });
+    
+    it('server should close', function() {
+        server.close();
+    });
 });

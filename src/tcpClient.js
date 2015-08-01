@@ -76,7 +76,7 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr){
           channelContext["server.RawStream"] = socket;
           channelContext["server.LocalAddress"] = socket.localAddress;
           channelContext["server.LocalPort"] = socket.localPort;
-          channelContext["server.RawStream"].on('finish', that.close.bind(that, channelContext));
+          channelContext["server.RawStream"].on('finish', that._disconnect.bind(that, channelContext));
           resolve(channelContext);
          });
      });
@@ -132,9 +132,7 @@ function TcpClient_CreateRequest(channelContext, path, method){
      var ctx = context;
      ctx["server.InProcess"] = true;
      return that._clientMessagePipeline(context).then(function(value){
-         ctx["iopa.Events"].emit("done", value);
          ctx["server.InProcess"] = false;
-     
          iopaContextFactory.dispose(ctx);
        that = null;
        ctx = null;
@@ -150,8 +148,8 @@ function TcpClient_CreateRequest(channelContext, path, method){
  * 
  * @public
  */
-TcpClient.prototype.close = function TcpClient_close(channelContext) {
-    channelContext["iopa.Events"].emit("disconnect");
+TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext) {
+    channelContext["iopa.Events"].emit("server.Disconnect");
     iopaContextFactory.dispose(channelContext);
 }
 

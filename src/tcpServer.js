@@ -138,10 +138,10 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
 };
 
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
-  context["iopa.Events"].emit("disconnect");
+  context["iopa.Events"].emit("server.Disconnect");
   delete this._connections[context["server.SessionId"]];
   if (context["server.RawStream"])
-    context["server.RawStream"].removeAllListeners('end');
+    context["server.RawStream"].removeAllListeners('finish');
    
     setTimeout(function() {
         iopaContextFactory.dispose(context);
@@ -189,7 +189,6 @@ TcpServer.prototype.connect = function TcpServer_connect(urlStr){
  * @returns {Promise(context)}
  * @public
  */
- 
 TcpServer.prototype.createResponseRequest = function TcpServer_createResponseRequest(originalContext, path, method){
   var urlStr = originalContext["iopa.Scheme"] + 
    "://" +
