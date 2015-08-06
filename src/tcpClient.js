@@ -76,7 +76,8 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr){
           channelContext["server.RawStream"] = socket;
           channelContext["server.LocalAddress"] = socket.localAddress;
           channelContext["server.LocalPort"] = socket.localPort;
-          channelContext["server.RawStream"].on('finish', that._disconnect.bind(that, channelContext));
+          channelContext["server.RawStream"].on('finish', that._disconnect.bind(that, channelContext, null));
+          channelContext["server.RawStream"].on('error', that._disconnect.bind(that, channelContext)); 
           resolve(channelContext);
          });
      });
@@ -132,6 +133,7 @@ function TcpClient_CreateRequest(channelContext, path, method){
      var ctx = context;
      ctx["server.InProcess"] = true;
      return that._clientMessagePipeline(context).then(function(value){
+         ctx["iopa.Events"].emit("server.RequestComplete", ctx);
          ctx["server.InProcess"] = false;
          iopaContextFactory.dispose(ctx);
        that = null;
@@ -148,8 +150,9 @@ function TcpClient_CreateRequest(channelContext, path, method){
  * 
  * @public
  */
-TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext) {
+TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, err) {
     channelContext["iopa.Events"].emit("server.Disconnect");
+    channelContext["iopa.CallCancelledSource"].cancel('server.Disconnect');
     iopaContextFactory.dispose(channelContext);
 }
 

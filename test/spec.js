@@ -29,7 +29,7 @@ describe('#TCPServer()', function() {
        var events = new Events.EventEmitter();
        var data = new BufferList();
         
-      before(function(done){
+       before(function(done){
         //  serverPipeline 
           var serverChannelApp = new iopa.App();
           serverChannelApp.use(function(channelContext, next){
@@ -83,4 +83,83 @@ describe('#TCPServer()', function() {
     it('server should close', function() {
         server.close();
     });
+    
+    it('client disconnects, server should also close', function(done) {
+          var server2;
+       //  serverPipeline 
+          var serverChannelApp = new iopa.App();
+          serverChannelApp.use(function(channelContext, next){
+             channelContext["iopa.Events"].on("server.Disconnect", function(){
+               done();
+               channelContext["mqttPacketServer.SessionClose"]();
+               server2.close();
+               });
+            
+              return next().then(function(){ return new Promise(function(resolve, reject){
+                 channelContext["mqttPacketServer.SessionClose"] = resolve;
+                 channelContext["mqttPacketServer.SessionError"] = reject;
+              }); 
+          });
+          });
+          var serverPipeline = serverChannelApp.build();
+         
+          //clientChannelPipeline 
+          var clientChannelApp = new iopa.App();
+          var clientPipeline = clientChannelApp.build();
+        
+           server2 = new TcpServer({}, serverPipeline, clientPipeline);
+  
+         if (!process.env.PORT)
+           process.env.PORT = 1883;
+          
+        server2.listen(process.env.PORT, process.env.IP)
+          .then(function(){
+                return server2.connect("mqtt://127.0.0.1")
+              })
+          .then(function(client){
+              var context = client["server.createRequest"]("/", "GET");
+              context["iopa.Body"].pipe(context["server.RawStream"] );
+               context["iopa.Body"].end("");
+              return null;
+          });
+    });   
+    
+    it('server disconnects, client should also close', function(done) {
+      
+          //serverPipeline 
+          var serverChannelApp = new iopa.App();
+          serverChannelApp.use(function(channelContext, next){
+              return next().then(function(){ return new Promise(function(resolve, reject){
+                 channelContext["mqttPacketServer.SessionClose"] = resolve;
+                 channelContext["mqttPacketServer.SessionError"] = reject;
+                }); 
+            });
+          });
+
+          var serverPipeline = serverChannelApp.build();
+         
+          //clientChannelPipeline 
+          var clientChannelApp = new iopa.App();
+          var clientPipeline = clientChannelApp.build();
+        
+          var server3 = new TcpServer({}, serverPipeline, clientPipeline);
+  
+         if (!process.env.PORT)
+           process.env.PORT = 1883;
+          
+        server3.listen(process.env.PORT, process.env.IP)
+          .then(function(){
+                return server3.connect("mqtt://127.0.0.1")
+              })
+          .then(function(client){
+             client["iopa.CallCancelled"].onCancelled(function(reason){ 
+               reason.code.should.equal('OperationCancelled');
+               done();
+              });
+            
+              server3.close();
+              return null;
+          });
+    });
+    
 });

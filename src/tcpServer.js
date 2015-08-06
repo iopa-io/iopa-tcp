@@ -133,12 +133,10 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   socket.on("close", this._onDisconnect.bind(this, context));
   
   this._connections[context["server.SessionId"]] = socket;
- 
   this.emit("data", context);
 };
 
-TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
-  context["iopa.Events"].emit("server.Disconnect");
+TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {    
   delete this._connections[context["server.SessionId"]];
   if (context["server.RawStream"])
     context["server.RawStream"].removeAllListeners('finish');
@@ -148,7 +146,10 @@ TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
          }, 1000);
     
    if (context["server.InProcess"])
-     context["iopa.CallCancelledSource"].cancel('Client Socket Disconnected');
+   {
+      context["iopa.Events"].emit("server.Disconnect");
+      context["iopa.CallCancelledSource"].cancel('server.Disconnect');
+   }
 };
 
 TcpServer.prototype._invoke = function TcpServer_invoke(context) {
@@ -156,7 +157,7 @@ TcpServer.prototype._invoke = function TcpServer_invoke(context) {
  
   var that = this;
   var ctx = context;
-
+   context["server.InProcess"] = true;
   return this._appFunc(context).then(function(value){
      ctx["server.InProcess"] = false;
      iopaContextFactory.dispose(ctx);
