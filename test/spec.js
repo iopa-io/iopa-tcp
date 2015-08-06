@@ -89,7 +89,8 @@ describe('#TCPServer()', function() {
        //  serverPipeline 
           var serverChannelApp = new iopa.App();
           serverChannelApp.use(function(channelContext, next){
-             channelContext["iopa.Events"].on("server.Disconnect", function(){
+             channelContext["iopa.CallCancelled"].onCancelled(function(reason){ 
+               reason.code.should.equal('OperationCancelled');
                done();
                channelContext["mqttPacketServer.SessionClose"]();
                server2.close();
