@@ -63,7 +63,7 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr){
   var channelContext = iopaContextFactory.createRequest(urlStr, "TCP-CONNECT");
   
   channelContext["tcp._BaseUrl"] = urlStr;
-  channelContext["server.createRequest"] = TcpClient_CreateRequest.bind(this, channelContext);
+  channelContext["server.CreateRequest"] = TcpClient_CreateRequest.bind(this, channelContext);
   
   var that = this;
   return new Promise(function(resolve, reject){

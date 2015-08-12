@@ -68,7 +68,7 @@ describe('#TCPServer()', function() {
         server.connect("mqtt://127.0.0.1")
        .then(function(client){
         console.log("Client is on port " + client["server.LocalPort"]);
-        var context = client["server.createRequest"]("/", "GET");
+        var context = client["server.CreateRequest"]("/", "GET");
         events.on("end", function(data){
           data.toString().should.equal('Hello World');
           done();
@@ -118,7 +118,7 @@ describe('#TCPServer()', function() {
                 return server2.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-              var context = client["server.createRequest"]("/", "GET");
+              var context = client["server.CreateRequest"]("/", "GET");
               context["iopa.Body"].pipe(context["server.RawStream"] );
                context["iopa.Body"].end("");
               return null;

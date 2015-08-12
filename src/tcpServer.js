@@ -153,7 +153,7 @@ TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
 };
 
 TcpServer.prototype._invoke = function TcpServer_invoke(context) {
-  context["server.createRequest"] = this.createResponseRequest.bind(this, context);
+  context["server.CreateRequest"] = this.createResponseRequest.bind(this, context);
  
   var that = this;
   var ctx = context;
