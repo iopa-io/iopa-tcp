@@ -36,7 +36,7 @@ Includes:
 
     npm install iopa-tcp
     
-## Install typings for Intellisense (Visual Studio Code)
+## Install typings for Intellisense (e.g., Visual Studio Code, Sublime TSD plugins, etc.)
 
     npm run typings
 
