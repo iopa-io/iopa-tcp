@@ -1,7 +1,7 @@
 {
   "name": "iopa-tcp",
   "main": "index.js",
-  "description": "Lightweight Transport Control Protocol (TCP) server and client, based on Internet of Protocols Alliance (IOPA) open standard",
+  "description": "Lightweight Transport Control Protocol (TCP) stack",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
   "version": "1.0.22",

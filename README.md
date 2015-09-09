@@ -7,7 +7,7 @@
 [![NPM](https://nodei.co/npm/iopa-tcp.png?downloads=true)](https://nodei.co/npm/iopa-tcp/)
 
 ## About
-`iopa-tcp` is a lightweight TCP server, based on the Internet of Protocols Alliance (IOPA) open standard  
+`iopa-tcp` is a lightweight TCP stack, based on the Internet of Protocols Alliance (IOPA) open standard  
 
 It servers TCP messages in standard IOPA format and allows existing middleware for Connect, Express and limerun projects to consume/send each mesage.
 
