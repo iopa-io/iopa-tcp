@@ -20,5 +20,5 @@ node_modules
 .c9
 
 # type definitions we mirror from github
-//**/typings/**/*.d.ts
-//**/typings/tsd.cached.json
+**/typings/**/*.d.ts
+**/typings/tsd.cached.json
