@@ -1,6 +1,6 @@
 {
   "name": "iopa-tcp",
-  "main": "src/tcpServer.js",
+  "main": "index.js",
   "description": "Lightweight Transport Control Protocol (TCP) server and client, based on Internet of Protocols Alliance (IOPA) open standard",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
@@ -10,8 +10,8 @@
     "url": "https://github.com/iopa-io/iopa-tcp.git"
   },
   "dependencies": {
-    "iopa": "*",
-    "iopa-common-stream": "*"
+     "iopa": "latest",
+    "iopa-common-stream": "latest"
   },
   "keywords": [
     "limerun",

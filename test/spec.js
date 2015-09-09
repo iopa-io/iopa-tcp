@@ -15,11 +15,10 @@
  */
  
 const iopa = require('iopa')
-    , TcpServer = require('../src/tcpServer.js')
-    , Promise = require('bluebird')
+    , tcp = require('../index.js')
     , util = require('util')
     , Events = require('events')
-    , BufferList = require('bl');
+    , BufferList = require('bl')
     
 var should = require('should');
 
@@ -29,25 +28,20 @@ describe('#TCPServer()', function() {
        var data = new BufferList();
         
        before(function(done){
-        //  serverPipeline 
           var serverChannelApp = new iopa.App();
           serverChannelApp.use(function(channelContext, next){
             channelContext["server.RawStream"].on("data", function(chunk){
-               events.emit("data", chunk);
+               events.emit("test.Data", chunk);
                data.append(chunk);
             });
              channelContext["server.RawStream"].on("end", function(){
-               events.emit("end", data);
+               events.emit("test.Finish", data);
             });
             return next();  
           });
           var serverPipeline = serverChannelApp.build();
          
-          //clientChannelPipeline 
-          var clientChannelApp = new iopa.App();
-          var clientPipeline = clientChannelApp.build();
-        
-          server = new TcpServer({}, serverPipeline, clientPipeline);
+         server = tcp.createServer({}, serverPipeline);
   
          if (!process.env.PORT)
           process.env.PORT = 1883;
@@ -63,20 +57,27 @@ describe('#TCPServer()', function() {
         console.log("Server is on port " + server.port );
     });
     
-    it('client should connect and server should receive client packets', function(done) {
+    it('client should connect and server should receive client packets', function (done) {
         server.connect("mqtt://127.0.0.1")
-       .then(function(client){
-        console.log("Client is on port " + client["server.LocalPort"]);
-        var context = client["server.CreateRequest"]("/", "GET");
-        events.on("end", function(data){
-          data.toString().should.equal('Hello World');
-          done();
-        })
-        context["iopa.Body"].pipe(context["server.RawStream"] );
-        context["iopa.Body"].write("Hello ");
-        context["iopa.Body"].end("World");
-        return null;
-       })
+            .then(function (client) {
+                console.log("Client is on port " + client["server.LocalPort"]);
+                events.on("test.Finish", function (data) {
+                    data.toString().should.equal('Hello World');
+                    done();
+                });
+                client.fetch("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                        try{
+                        context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].write("Hello ");
+                        context["iopa.Body"].end("World");
+                        } catch (ex) {
+                            console.log(ex);
+                            return Promise.reject(ex);
+                        }
+                    });
+            })
     });
     
     it('server should close', function() {
@@ -85,8 +86,8 @@ describe('#TCPServer()', function() {
     
     it('client disconnects, server should also close', function(done) {
           var server2;
-       //  serverPipeline 
-          var serverChannelApp = new iopa.App();
+       
+           var serverChannelApp = new iopa.App();
           serverChannelApp.use(function(channelContext, next){
              channelContext["iopa.CallCancelled"].onCancelled(function(reason){ 
                reason.code.should.equal('OperationCancelled');
@@ -103,11 +104,7 @@ describe('#TCPServer()', function() {
           });
           var serverPipeline = serverChannelApp.build();
          
-          //clientChannelPipeline 
-          var clientChannelApp = new iopa.App();
-          var clientPipeline = clientChannelApp.build();
-        
-           server2 = new TcpServer({}, serverPipeline, clientPipeline);
+           server2 = tcp.createServer({}, serverPipeline);
   
          if (!process.env.PORT)
            process.env.PORT = 1883;
@@ -117,11 +114,13 @@ describe('#TCPServer()', function() {
                 return server2.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-              var context = client["server.CreateRequest"]("/", "GET");
-              context["iopa.Body"].pipe(context["server.RawStream"] );
-               context["iopa.Body"].end("");
-              return null;
-          });
+                 client.fetch("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
+                    function (context) {
+                       context["iopa.Body"].pipe(context["server.RawStream"]);
+                        context["iopa.Body"].end("");
+                    });
+                });
     });   
     
     it('server disconnects, client should also close', function(done) {
@@ -138,11 +137,7 @@ describe('#TCPServer()', function() {
 
           var serverPipeline = serverChannelApp.build();
          
-          //clientChannelPipeline 
-          var clientChannelApp = new iopa.App();
-          var clientPipeline = clientChannelApp.build();
-        
-          var server3 = new TcpServer({}, serverPipeline, clientPipeline);
+          var server3 = tcp.createServer({}, serverPipeline);
   
          if (!process.env.PORT)
            process.env.PORT = 1883;

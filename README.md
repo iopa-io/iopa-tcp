@@ -30,9 +30,41 @@ Includes:
   
 ### Client Functions
   * connect
+  * fetch
   
 ## Installation
 
     npm install iopa-tcp
 
+## Example usage
+
+```js
+const iopa = require('iopa')
+  , tcp = require('iopa-tcp')
+ 
+var app = new iopa.App();
+
+app.use(function (channelContext, next) {
+  channelContext["server.RawStream"].pipe(process.stdout);
+  return next();
+});
+
+var server = tcp.createServer(app.build());
+
+if (!process.env.PORT)
+  process.env.PORT = 1883;
+  
+server.listen(process.env.PORT, process.env.IP)
+
+  .then(function () {
+    return server.connect("mqtt://127.0.0.1");
+  })
+  
+  .then(function (client) {
+    client.fetch("/", { "iopa.Body": "Hello World\n" } , function (context) 
+      context["server.RawStream"].write(context["iopa.Body"]);
+    });
+    
+  })
+ ```
  

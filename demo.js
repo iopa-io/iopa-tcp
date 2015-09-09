@@ -15,38 +15,30 @@
  */
 
 const iopa = require('iopa')
-    , TcpServer = require('./lib/tcpServer.js')
-    , Promise = require('bluebird')
-    , util = require('util');
-
- //  serverPipeline 
-  var serverChannelApp = new iopa.App();
-  serverChannelApp.use(function(channelContext, next){
-    channelContext["server.RawStream"].pipe(process.stdout);
-    return next();  
-  });
-  var serverPipeline = serverChannelApp.build();
+  , tcp = require('./index.js')
  
-  //clientChannelPipeline 
-  var clientChannelApp = new iopa.App();
-  var clientPipeline = clientChannelApp.build();
+var app = new iopa.App();
 
-  var server = new TcpServer({}, serverPipeline, clientPipeline);
-  
- if (!process.env.PORT)
+app.use(function (channelContext, next) {
+  channelContext["server.RawStream"].pipe(process.stdout);
+  return next();
+});
+
+var server = tcp.createServer(app.build());
+
+if (!process.env.PORT)
   process.env.PORT = 1883;
 
- server.listen(process.env.PORT, process.env.IP)
-   .then(function(){
-      console.log("Server is on port " + server.port );
-      return server.connect("mqtt://127.0.0.1");
-   })
-   .then(function(client){
-      console.log("Client is on port " + client["server.LocalPort"]);
-      var context = client["server.CreateRequest"]("/", "GET");
-      context["iopa.Body"].pipe(context["server.RawStream"] );
-      context["iopa.Body"].write("Hello ");
-      context["iopa.Body"].end("World\n");
-      return null;
-   })
+server.listen(process.env.PORT, process.env.IP)
+  .then(function () {
+    console.log("Server is on port " + server.port);
+    return server.connect("mqtt://127.0.0.1");
+  })
+  .then(function (client) {
+    console.log("Client is on port " + client["server.LocalPort"]);
+    var options = { "iopa.Body": "Hello World\n" }
+    client.fetch("/", options, function (context) {
+      context["server.RawStream"].write(context["iopa.Body"]);
+    });
+  })
    
