@@ -32,7 +32,7 @@
   },
   "scripts": {
     "test": "mocha --reporter spec test",
-    "postinstall": "tsd reinstall --overwrite --clean --config tools/tsd.json && tsd link"
+    "typings": "tsd reinstall --overwrite --clean --config tools/tsd.json && tsd link"
   },
   "devDependencies": {
     "bl": "latest",

@@ -35,6 +35,10 @@ Includes:
 ## Installation
 
     npm install iopa-tcp
+    
+## Install typings for Intellisense (Visual Studio Code)
+
+    npm run typings
 
 ## Example usage
 
