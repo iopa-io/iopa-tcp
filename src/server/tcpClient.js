@@ -25,17 +25,7 @@ const net = require('net'),
   iopaContextFactory = require('iopa').factory,
   constants = require('iopa').constants,
   IOPA = constants.IOPA,
-  SERVER = constants.SERVER,
-  METHODS = constants.METHODS,
-  PORTS = constants.PORTS,
-  SCHEMES = constants.SCHEMES,
-  PROTOCOLS = constants.PROTOCOLS,
-  IOPAEVENTS = constants.EVENTS,
-  APP = constants.APP,
-  COMMONKEYS = constants.COMMONKEYS,
-  OPAQUE = constants.OPAQUE,
-  WEBSOCKET = constants.WEBSOCKET,
-  SECURITY = constants.SECURITY;
+  SERVER = constants.SERVER
 
 /* *********************************************************
  * IOPA TCP CLIENT (GENERIC)  
@@ -138,8 +128,8 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
  * @public
  */
 TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, err) {
-  channelContext[IOPA.Events].emit(IOPAEVENTS.Disconnect);
-  channelContext[SERVER.CallCancelledSource].cancel(IOPAEVENTS.Disconnect);
+  channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
+  channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
   channelContext[SERVER.RawStream].destroy();
   delete this._connections[channelContext[SERVER.SessionId]];
   iopaContextFactory.dispose(channelContext);

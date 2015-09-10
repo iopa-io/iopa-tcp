@@ -25,17 +25,7 @@ var using = require('../util/using.js');
 
 const constants = require('iopa').constants,
     IOPA = constants.IOPA,
-    SERVER = constants.SERVER,
-    METHODS = constants.METHODS,
-    PORTS = constants.PORTS,
-    SCHEMES = constants.SCHEMES,
-    PROTOCOLS = constants.PROTOCOLS,
-    IOPAEVENTS = constants.EVENTS,
-    APP = constants.APP,
-    COMMONKEYS = constants.COMMONKEYS,
-    OPAQUE = constants.OPAQUE,
-    WEBSOCKET = constants.WEBSOCKET,
-    SECURITY = constants.SECURITY;
+    SERVER = constants.SERVER
 
 /* *********************************************************
  * IOPA TCP SERVER (GENERIC)  
@@ -62,7 +52,7 @@ function TcpServer(options, serverPipeline) {
 
   if (serverPipeline) {
     this._appFunc = serverPipeline;
-    this.on(IOPAEVENTS.Request, this._invoke.bind(this));
+    this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
   }
 
     this._tcpClient = new TcpClient(options);
@@ -139,7 +129,7 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   socket.once("close", this._onDisconnect.bind(this, context));
 
   this._connections[context[SERVER.SessionId]] = socket;
-  this.emit(IOPAEVENTS.Request, context);
+  this.emit(IOPA.EVENTS.Request, context);
 };
 
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
@@ -150,8 +140,8 @@ TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
   }, 1000);
 
   if (context[IOPA.Events]) {
-    context[IOPA.Events].emit(IOPAEVENTS.Disconnect);
-    context[SERVER.CallCancelledSource].cancel(IOPAEVENTS.Disconnect);
+    context[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
+    context[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
   }
 };
 
