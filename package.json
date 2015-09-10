@@ -4,7 +4,7 @@
   "description": "Lightweight Transport Control Protocol (TCP) stack",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "repository": {
     "type": "git",
     "url": "https://github.com/iopa-io/iopa-tcp.git"
@@ -39,5 +39,5 @@
     "mocha": "latest",
     "mocha-junit-reporter": "latest",
     "should": "latest"
-   }
+  }
 }
