@@ -32,12 +32,13 @@
  * ES6 finally/dispose pattern for IOPA Context
  * @param context Iopa
  * @param callback function(context): Promise
- * returns Promise that always ultimately resolves to null or rejects
+ * returns Promise that always ultimately resolves to callback's result or rejects
  */
 module.exports = function using(context, callback) {
+	var value;
 	return new Promise(function (resolve, reject) {
 		try {
-			resolve(callback(context));
+			value = resolve(callback(context));
 		} catch (ex) {
 			reject(ex);
 		}
@@ -46,7 +47,7 @@ module.exports = function using(context, callback) {
 			return Promise.resolve(function () {
 				iopaContextFactory.dispose(context);
 				context = null;
-				return null;
+				return value;
 			} ());
 		},
 			function (err) {
