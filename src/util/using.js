@@ -13,47 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+var iopaContextFactory = require('iopa').factory;
  
- var iopaContextFactory = require('iopa').factory;
+/*
+* bluebird version only -- not used
+*
+* exports = function using(context, cb){
+* 	 return Promise.using(Promise.resolve(context)
+*	 .disposer(function(context, promise){
+*		 iopaContextFactory.dispose(context);
+*		 context = null; 
+*	 }), cb);
+* }
+*/
  
- /*
- * bluebird version only -- not used
- *
- * exports = function using(context, cb){
- * 	 return Promise.using(Promise.resolve(context)
- *	 .disposer(function(context, promise){
- *		 iopaContextFactory.dispose(context);
- *		 context = null; 
- *	 }), cb);
- * }
- */
- 
- /*
- * ES6 finally/dispose pattern for IOPA Context
- * @param context Iopa
- * @param callback function(context): Promise
- * returns Promise that always ultimately resolves to callback's result or rejects
- */
+/*
+* ES6 finally/dispose pattern for IOPA Context
+* @param context Iopa
+* @param callback function(context): Promise
+* returns Promise that always ultimately resolves to callback's result or rejects
+*/
 module.exports = function using(context, callback) {
-	var value;
+
 	return new Promise(function (resolve, reject) {
-		try {
-			value = resolve(callback(context));
-		} catch (ex) {
-			reject(ex);
-		}
-	})
-		.then(function () {
-			return Promise.resolve(function () {
-				iopaContextFactory.dispose(context);
-				context = null;
-				return value;
-			} ());
-		},
-			function (err) {
-				context.log.error(err);
-				iopaContextFactory.dispose(context);
-				context = null;
-				return Promise.reject(err);
-			});
+
+		var v = callback(context);
+
+		if (typeof v === 'undefined')
+			v = null;
+
+		resolve(v);
+
+	}).then(function (value) {
+		return Promise.resolve(function () {
+
+			iopaContextFactory.dispose(context);
+			context = null;
+			return value;
+
+		} ());
+	},
+		function (err) {
+
+			context.log.error(err);
+			iopaContextFactory.dispose(context);
+			context = null;
+			throw err;
+
+		});
 };
