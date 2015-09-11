@@ -19,8 +19,6 @@ const net = require('net'),
   util = require('util'),
   events = require('events'),
  
-  using = require('../util/using.js'),
-
   iopaStream = require('iopa-common-stream'),
   iopaContextFactory = require('iopa').factory,
   constants = require('iopa').constants,
@@ -118,7 +116,7 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   context[SERVER.IsLocalOrigin] = true;
   context[SERVER.IsRequest] = true;
   
-  return using(context, pipeline);
+  return iopaContextFactory.using(context, pipeline);
 };
 
 /**

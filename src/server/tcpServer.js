@@ -21,7 +21,6 @@ var util = require('util');
 var events = require('events');
 var TcpClient = require('./tcpClient.js');
 var iopaStream = require('iopa-common-stream');
-var using = require('../util/using.js');
 
 const constants = require('iopa').constants,
     IOPA = constants.IOPA,
@@ -147,7 +146,7 @@ TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
 
 TcpServer.prototype._invoke = function TcpServer_invoke(context) {
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  return using(context, this._appFunc);
+  return iopaContextFactory.using(context, this._appFunc);
 };
 
 /**
@@ -192,7 +191,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   context[SERVER.IsLocalOrigin] = true;
   context[SERVER.IsRequest] = false;
    
-  return using(context, pipeline);
+  return iopaContextFactory.using(context, pipeline);
 };
 
 /**
