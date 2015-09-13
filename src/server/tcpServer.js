@@ -179,7 +179,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   }
   
   var urlStr = originalContext[IOPA.Scheme] +
-    "://" +
+    "//" +
     originalContext[SERVER.RemoteAddress] + ":" + originalContext[SERVER.RemotePort] +
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;

@@ -126,11 +126,13 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
  * @public
  */
 TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, err) {
-  channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
-  channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-  channelContext[SERVER.RawStream].destroy();
-  delete this._connections[channelContext[SERVER.SessionId]];
-  iopaContextFactory.dispose(channelContext);
+  if (channelContext[IOPA.Events]){
+    channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
+    channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
+    channelContext[SERVER.RawStream].destroy();
+    delete this._connections[channelContext[SERVER.SessionId]];
+    iopaContextFactory.dispose(channelContext);
+  }
 }
 
 /**
