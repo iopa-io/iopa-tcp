@@ -115,6 +115,7 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   context[SERVER.SessionId] = channelContext[SERVER.SessionId];
   context[SERVER.IsLocalOrigin] = true;
   context[SERVER.IsRequest] = true;
+  context.disconnect = this._disconnect.bind(this, context);
   
   return iopaContextFactory.using(context, pipeline);
 };
@@ -129,9 +130,10 @@ TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, 
   if (channelContext[IOPA.Events]){
     channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
     channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-    channelContext[SERVER.RawStream].destroy();
+    var socket = channelContext[SERVER.RawStream];
     delete this._connections[channelContext[SERVER.SessionId]];
     iopaContextFactory.dispose(channelContext);
+    socket.destroy();
   }
 }
 
