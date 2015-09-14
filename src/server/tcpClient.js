@@ -59,13 +59,11 @@ util.inherits(TcpClient, events.EventEmitter);
 * @constructor
 */
 TcpClient.prototype.connect = function TcpClient_connect(urlStr) {
-  var channelContext = iopaContextFactory.createRequest(urlStr, "TCP-CONNECT");
-  channelContext[SERVER.OriginalUrl] = urlStr;
+  var channelContext = iopaContextFactory.createRequestResponse(urlStr, "TCP-CONNECT");
+  var channelResponse = channelContext.response;
+ 
   channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
-  channelContext[SERVER.IsLocalOrigin] = true;
-  channelContext[SERVER.IsRequest] = true;
-  channelContext[IOPA.MessageId] = channelContext[IOPA.Seq];
-
+ 
   var that = this;
   return new Promise(function (resolve, reject) {
     var socket = net.createConnection(
@@ -73,13 +71,18 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr) {
       channelContext[SERVER.RemoteAddress],
       function () {
         channelContext[SERVER.RawStream] = socket;
+        channelContext[SERVER.RawTransport] = socket;
         channelContext[SERVER.LocalAddress] = socket.localAddress;
         channelContext[SERVER.LocalPort] = socket.localPort;
+        
+        channelResponse[SERVER.RawStream] = socket;
+        channelResponse[SERVER.RawTransport] = socket;
+        channelResponse[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
+        channelResponse[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
+        
         socket.once('finish', that._disconnect.bind(that, channelContext, null));
         socket.once('error', that._disconnect.bind(that, channelContext));
-        channelContext[IOPA.Body] = new iopaStream.OutgoingNoPayloadStream();
         channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
-
         that._connections[channelContext[SERVER.SessionId]] = channelContext;
         resolve(channelContext);
       });
@@ -103,20 +106,23 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
     options = {};
   }
   
-  var urlStr = channelContext[SERVER.OriginalUrl] + path;
-  var context = iopaContextFactory.createRequest(urlStr, options);
+  var channelResponse = channelContext.response;
 
-  context[SERVER.TLS] = channelContext[SERVER.TLS];
-  context[SERVER.RemoteAddress] = channelContext[SERVER.RemoteAddress] ;
-  context[SERVER.RemotePort] = channelContext[SERVER.RemotePort];
+  var urlStr = channelContext[SERVER.OriginalUrl] + path;
+  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+
   context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
   context[SERVER.RawStream] = channelContext[SERVER.RawStream];
   context[SERVER.SessionId] = channelContext[SERVER.SessionId];
-  context[SERVER.IsLocalOrigin] = true;
-  context[SERVER.IsRequest] = true;
-  context.disconnect = this._disconnect.bind(this, context);
-  
+  context[SERVER.ParentContext] = channelContext;
+ 
+  var response = context.response;
+  response[SERVER.LocalAddress] = channelResponse[SERVER.LocalAddress];
+  response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
+  response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
+  response[SERVER.ParentContext] = channelResponse;
+     
   return iopaContextFactory.using(context, pipeline);
 };
 
@@ -130,10 +136,9 @@ TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, 
   if (channelContext[IOPA.Events]){
     channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
     channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-    var socket = channelContext[SERVER.RawStream];
     delete this._connections[channelContext[SERVER.SessionId]];
+    channelContext[SERVER.RawTransport].destroy();
     iopaContextFactory.dispose(channelContext);
-    socket.destroy();
   }
 }
 

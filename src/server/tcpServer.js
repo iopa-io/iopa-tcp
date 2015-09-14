@@ -173,6 +173,8 @@ TcpServer.prototype.connect = function TcpServer_connect(urlStr) {
  * @public
  */
 TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFetch(originalContext, path, options, pipeline) {
+ var originalResponse = originalContext.response; 
+ 
   if (typeof options === 'function') {
     pipeline = options;
     options = {};
@@ -180,17 +182,25 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   
   var urlStr = originalContext[IOPA.Scheme] +
     "//" +
-    originalContext[SERVER.RemoteAddress] + ":" + originalContext[SERVER.RemotePort] +
+    originalResponse[SERVER.RemoteAddress] + ":" + originalResponse[SERVER.RemotePort] +
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;
 
-  var context = iopaContextFactory.createRequest(urlStr, options);
+  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+  var response = context.response;
+  
+  //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
+  context[SERVER.RawStream] = originalResponse[SERVER.RawStream];
+  response[SERVER.RawStream] = originalContext[SERVER.RawStream];
 
- //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
-  context[SERVER.RawStream] = originalContext.response[SERVER.RawStream];
-  context[SERVER.IsLocalOrigin] = true;
-  context[SERVER.IsRequest] = false;
-   
+  context[SERVER.LocalAddress] = originalResponse[SERVER.LocalAddress];
+  context[SERVER.LocalPort] = originalResponse[SERVER.LocalPort]; 
+  context[SERVER.SessionId] = originalResponse[SERVER.SessionId];
+
+  response[SERVER.LocalAddress] = response[SERVER.LocalAddress];
+  response[SERVER.LocalPort] = response[SERVER.LocalPort]; 
+  response[SERVER.SessionId] = response[SERVER.SessionId];
+    
   return iopaContextFactory.using(context, pipeline);
 };
 
