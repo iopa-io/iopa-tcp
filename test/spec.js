@@ -80,35 +80,40 @@ describe('#TCPServer()', function() {
             })
     });
     
-    it('server should close', function() {
+    it('server should close', function(done) {
         server.close();
+        process.nextTick(done);
     });
     
-    it('client disconnects, server should also close', function(done) {
-          var server2;
-       
-           var serverChannelApp = new iopa.App();
-          serverChannelApp.use(function(channelContext, next){
-             channelContext["iopa.CallCancelled"].onCancelled(function(reason){ 
-               reason.code.should.equal('OperationCancelled');
-               done();
-               channelContext["mqttPacketServer.SessionClose"]();
-               server2.close();
-               });
-            
-              return next().then(function(){ return new Promise(function(resolve, reject){
-                 channelContext["mqttPacketServer.SessionClose"] = resolve;
-                 channelContext["mqttPacketServer.SessionError"] = reject;
-              }); 
-          });
-          });
-          var serverPipeline = serverChannelApp.build();
-         
-           server2 = tcp.createServer({}, serverPipeline);
-  
-         if (!process.env.PORT)
-           process.env.PORT = 1883;
-          
+    it('client disconnects, server should also close', function (done) {
+        var server2;
+
+        var serverChannelApp = new iopa.App();
+        serverChannelApp.use(function (channelContext, next) {
+
+            channelContext["iopa.CallCancelled"].onCancelled(
+                function (reason) {
+                    reason.code.should.equal('OperationCancelled');
+                    done();
+                    channelContext["test.SessionClose"]();
+                    server2.close();
+                });
+
+            return next().then(function () {
+                return new Promise(function (resolve, reject) {
+                    channelContext["test.SessionClose"] = resolve;
+                    channelContext["test.SessionError"] = reject;
+                });
+            });
+        });
+        
+        var serverPipeline = serverChannelApp.build();
+
+        server2 = tcp.createServer({}, serverPipeline);
+
+        if (!process.env.PORT)
+            process.env.PORT = 1883;
+
         server2.listen(process.env.PORT, process.env.IP)
           .then(function(){
                 return server2.connect("mqtt://127.0.0.1")

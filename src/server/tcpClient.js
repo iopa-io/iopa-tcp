@@ -20,10 +20,9 @@ const net = require('net'),
   events = require('events'),
  
   iopaStream = require('iopa-common-stream'),
-  iopaContextFactory = require('iopa').factory,
-  constants = require('iopa').constants,
-  IOPA = constants.IOPA,
-  SERVER = constants.SERVER
+  iopa = require('iopa'),
+  IOPA = iopa.constants.IOPA,
+  SERVER = iopa.constants.SERVER
 
 /* *********************************************************
  * IOPA TCP CLIENT (GENERIC)  
@@ -43,6 +42,7 @@ function TcpClient(options) {
   events.EventEmitter.call(this);
 
   this._options = options;
+  this._factory = new iopa.Factory(options);
   this._connections = {};
 }
 
@@ -59,7 +59,7 @@ util.inherits(TcpClient, events.EventEmitter);
 * @constructor
 */
 TcpClient.prototype.connect = function TcpClient_connect(urlStr) {
-  var channelContext = iopaContextFactory.createRequestResponse(urlStr, "TCP-CONNECT");
+  var channelContext = this._factory.createRequestResponse(urlStr, "TCP-CONNECT");
   var channelResponse = channelContext.response;
  
   channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
@@ -109,7 +109,7 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   var channelResponse = channelContext.response;
 
   var urlStr = channelContext[SERVER.OriginalUrl] + path;
-  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+  var context = this._factory.createRequestResponse(urlStr, options);
 
   context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
   context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
@@ -121,9 +121,10 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.LocalAddress] = channelResponse[SERVER.LocalAddress];
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
+  response[SERVER.SessionId] = channelResponse[SERVER.SessionId];
   response[SERVER.ParentContext] = channelResponse;
      
-  return iopaContextFactory.using(context, pipeline);
+  return context.using(pipeline);
 };
 
 /**
@@ -138,7 +139,7 @@ TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, 
     channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
     delete this._connections[channelContext[SERVER.SessionId]];
     channelContext[SERVER.RawTransport].destroy();
-    iopaContextFactory.dispose(channelContext);
+    channelContext.dispose();
   }
 }
 

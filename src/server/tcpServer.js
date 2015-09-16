@@ -15,7 +15,7 @@
  */
 
 // DEPENDENCIES
-var iopaContextFactory = require('iopa').factory;
+var iopa = require('iopa');
 var net = require('net');
 var util = require('util');
 var events = require('events');
@@ -48,6 +48,7 @@ function TcpServer(options, serverPipeline) {
   }
 
   this._options = options;
+  this._factory = new iopa.Factory(options);
 
   if (serverPipeline) {
     this._appFunc = serverPipeline;
@@ -103,7 +104,7 @@ Object.defineProperty(TcpServer.prototype, "port", { get: function () { return t
 Object.defineProperty(TcpServer.prototype, "address", { get: function () { return this._address; } });
 
 TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
-  var context = iopaContextFactory.createContext();
+  var context = this._factory.createContext();
   context[IOPA.Method] = "TCP-CONNECT";
 
   context[SERVER.TLS] = false;
@@ -134,19 +135,17 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
   delete this._connections[context[SERVER.SessionId]];
  
-  setTimeout(function () {
-    iopaContextFactory.dispose(context);
-  }, 1000);
-
-  if (context[IOPA.Events]) {
-    context[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
+  if (context.dispose)
+  {
     context[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
+    process.nextTick(function(){if (context.dispose) context.dispose();});
+    context[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
   }
 };
 
 TcpServer.prototype._invoke = function TcpServer_invoke(context) {
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  return iopaContextFactory.using(context, this._appFunc);
+  return context.using(this._appFunc);
 };
 
 /**
@@ -186,7 +185,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;
 
-  var context = iopaContextFactory.createRequestResponse(urlStr, options);
+  var context = this._factory.createRequestResponse(urlStr, options);
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
@@ -201,7 +200,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   response[SERVER.LocalPort] = response[SERVER.LocalPort]; 
   response[SERVER.SessionId] = response[SERVER.SessionId];
     
-  return iopaContextFactory.using(context, pipeline);
+  return context.using(pipeline);
 };
 
 /**
@@ -217,7 +216,6 @@ TcpServer.prototype.close = function TcpServer_close() {
 
   for (var key in this._connections)
     this._connections[key].destroy();
-
 
   this._tcp.close();
   this._tcpClient = undefined;
