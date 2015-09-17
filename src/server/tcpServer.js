@@ -115,8 +115,8 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   context[SERVER.RawStream] = socket;
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
-  context[SERVER.SessionId] = socket.remoteAddress + ':' + socket.remotePort;
-
+  context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
+           
   var response = context.response;
   response[SERVER.TLS] = context["server.TLS"];
   response[SERVER.RemoteAddress] = context["server.RemoteAddress"];
@@ -185,7 +185,10 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
     originalContext[IOPA.PathBase] +
     originalContext[IOPA.Path] + path;
 
-  var context = this._factory.createRequestResponse(urlStr, options);
+  var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
+  context[SERVER.Capabilities] = originalContext[SERVER.Capabilities];
+  context[SERVER.ParentContext] = originalContext;
+ 
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL

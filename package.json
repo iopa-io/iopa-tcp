@@ -1,7 +1,7 @@
 {
   "name": "iopa-tcp",
   "main": "index.js",
-  "description": "Lightweight Transport Control Protocol (TCP) stack",
+  "description": "API-First Transport Control Protocol (TCP) stack for Internet of Things (IoT), based on Internet of Protocols Alliance (IOPA) specification",
   "author": "iopa <build@iopa.io>",
   "license": "Apache-2.0",
   "version": "1.2.1",
