@@ -186,8 +186,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
     originalContext[IOPA.Path] + path;
 
   var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
-  context[SERVER.Capabilities] = originalContext[SERVER.Capabilities];
-  context[SERVER.ParentContext] = originalContext;
+  originalContext[SERVER.Factory].mergeCapabilities(context, originalContext);
  
   var response = context.response;
   
