@@ -14,15 +14,33 @@
  * limitations under the License.
  */
 
+
+global.Promise = require('bluebird');
+
 const iopa = require('iopa')
   , tcp = require('./index.js')
  
 var app = new iopa.App();
 
-app.use(function (channelContext, next) {
-  channelContext["server.RawStream"].pipe(process.stdout);
-  return next();
-});
+ app.channeluse(function(channelContext, next){
+    console.log("CHANNEL");
+    return next();
+  });
+  app.use(function(channelContext, next){
+    console.log("INVOKE");
+    channelContext["server.RawStream"].pipe(process.stdout);
+    return next();  
+  });
+  
+  app.connectuse(function(channelContext, next){
+    console.log("CONNECT");
+    return next();
+  });
+  
+  app.dispatchuse(function(context, next){
+    console.log("DISPATCH");
+    return next();
+  });
 
 var server = tcp.createServer(app.build());
 

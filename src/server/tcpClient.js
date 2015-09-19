@@ -27,6 +27,7 @@ const net = require('net'),
 /* *********************************************************
  * IOPA TCP CLIENT (GENERIC)  
  * ********************************************************* */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /**
 * Creates a new IOPA Request using a Tcp Url including host and port name
@@ -38,9 +39,21 @@ const net = require('net'),
 * @public
 * @constructor
 */
-function TcpClient(options) {
+function TcpClient(options, appFuncConnect, appFuncDispatch) {
+  
+  _classCallCheck(this, TcpClient);
+
+  if (typeof options === 'function') {
+    appFuncDispatch = appFuncConnect;
+    appFuncConnect = options;
+    options = {};
+  }
+  
   events.EventEmitter.call(this);
 
+  this._connect = appFuncConnect || function(context){return Promise.resolve(context)};
+  this._dispatch = appFuncDispatch || function(context){return Promise.resolve(context)};
+  
   this._options = options;
   this._factory = new iopa.Factory(options);
   this._connections = {};
@@ -58,12 +71,17 @@ util.inherits(TcpClient, events.EventEmitter);
 * @public
 * @constructor
 */
-TcpClient.prototype.connect = function TcpClient_connect(urlStr) {
-  var channelContext = this._factory.createRequestResponse(urlStr, "TCP-CONNECT");
+TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
+ defaults = defaults || {};
+ defaults[IOPA.Method] = defaults[IOPA.Method] || IOPA.METHODS.connect;
+  var channelContext = this._factory.createRequestResponse(urlStr, defaults);
   var channelResponse = channelContext.response;
- 
+
   channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
+   channelContext[SERVER.Dispatch] = this._dispatch;
  
+  channelContext.disconnect = this._disconnect.bind(this, channelContext);
+
   var that = this;
   return new Promise(function (resolve, reject) {
     var socket = net.createConnection(
@@ -84,7 +102,7 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr) {
         socket.once('error', that._disconnect.bind(that, channelContext));
         channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
         that._connections[channelContext[SERVER.SessionId]] = channelContext;
-        resolve(channelContext);
+        resolve(that._connect(channelContext));
       });
   });
 };
@@ -122,7 +140,11 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
       
-  return context.using(pipeline);
+  return context.using(function () {
+    var value = channelContext[SERVER.Dispatch](context);
+    pipeline(context);
+    return value;
+  });
 };
 
 /**

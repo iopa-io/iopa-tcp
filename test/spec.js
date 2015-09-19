@@ -28,8 +28,8 @@ describe('#TCPServer()', function() {
        var data = new BufferList();
         
        before(function(done){
-          var serverChannelApp = new iopa.App();
-          serverChannelApp.use(function(channelContext, next){
+          var app = new iopa.App();
+          app.use(function(channelContext, next){
             channelContext["server.RawStream"].on("data", function(chunk){
                events.emit("test.Data", chunk);
                data.append(chunk);
@@ -39,9 +39,8 @@ describe('#TCPServer()', function() {
             });
             return next();  
           });
-          var serverPipeline = serverChannelApp.build();
-         
-         server = tcp.createServer({}, serverPipeline);
+        
+         server = tcp.createServer({}, app.build());
   
          if (!process.env.PORT)
           process.env.PORT = 1883;
@@ -88,8 +87,8 @@ describe('#TCPServer()', function() {
     it('client disconnects, server should also close', function (done) {
         var server2;
 
-        var serverChannelApp = new iopa.App();
-        serverChannelApp.use(function (channelContext, next) {
+        var app = new iopa.App();
+        app.use(function (channelContext, next) {
 
             channelContext["iopa.CallCancelled"].onCancelled(
                 function (reason) {
@@ -106,10 +105,8 @@ describe('#TCPServer()', function() {
                 });
             });
         });
-        
-        var serverPipeline = serverChannelApp.build();
 
-        server2 = tcp.createServer({}, serverPipeline);
+        server2 = tcp.createServer({}, app.build());
 
         if (!process.env.PORT)
             process.env.PORT = 1883;

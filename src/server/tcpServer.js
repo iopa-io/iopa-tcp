@@ -23,8 +23,10 @@ var TcpClient = require('./tcpClient.js');
 var iopaStream = require('iopa-common-stream');
 
 const constants = require('iopa').constants,
-    IOPA = constants.IOPA,
-    SERVER = constants.SERVER
+  IOPA = constants.IOPA,
+  SERVER = constants.SERVER
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /* *********************************************************
  * IOPA TCP SERVER (GENERIC)  
@@ -41,21 +43,26 @@ const constants = require('iopa').constants,
  * @constructor
  * @public
  */
-function TcpServer(options, serverPipeline) {
+function TcpServer(options, appFunc) {
+  _classCallCheck(this, TcpServer);
+
   if (typeof options === 'function') {
-    serverPipeline = options;
+    appFunc = options;
     options = {};
   }
+  events.EventEmitter.call(this);
 
+  options = options || {};
   this._options = options;
   this._factory = new iopa.Factory(options);
+  this._appFunc = appFunc;
 
-  if (serverPipeline) {
-    this._appFunc = serverPipeline;
-    this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
-  }
+  this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
 
-    this._tcpClient = new TcpClient(options);
+  this._connect = this._appFunc.connect || function (context) { return Promise.resolve(context) };
+  this._dispatch = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
+
+  this._tcpClient = new TcpClient(options, this._connect, this._dispatch);
 
   this._connections = {};
 }
@@ -78,9 +85,9 @@ TcpServer.prototype.listen = function TcpServer_listen(port, address) {
   }
 
   if (this._tcp)
-    return new Promise(function(resolve, reject){
-     reject("Already listening");
-      });
+    return new Promise(function (resolve, reject) {
+      reject("Already listening");
+    });
 
   var that = this;
 
@@ -89,8 +96,8 @@ TcpServer.prototype.listen = function TcpServer_listen(port, address) {
   this._port = port;
   this._address = address;
 
-  return new Promise(function(resolve, reject){
-    that._tcp.listen(port, address || '0.0.0.0', 
+  return new Promise(function (resolve, reject) {
+    that._tcp.listen(port, address || '0.0.0.0',
       function () {
         that._linfo = that._tcp.address();
         that._port = that._linfo.port;
@@ -105,7 +112,7 @@ Object.defineProperty(TcpServer.prototype, "address", { get: function () { retur
 
 TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   var context = this._factory.createContext();
-  context[IOPA.Method] = "TCP-CONNECT";
+  context[IOPA.Method] = IOPA.METHODS.connect;
 
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = socket.remoteAddress;
@@ -116,16 +123,17 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
-           
+
   var response = context.response;
-  response[SERVER.TLS] = context["server.TLS"];
-  response[SERVER.RemoteAddress] = context["server.RemoteAddress"];
-  response[SERVER.RemotePort] = context["server.RemotePort"];
-  response[SERVER.LocalAddress] = context["server.LocalAddress"];
-  response[SERVER.LocalPort] = context["server.LocalPort"];
-  response[SERVER.RawStream] = context["server.RawStream"];
+  response[SERVER.TLS] = context[SERVER.TLS];
+  response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
+  response[SERVER.RemotePort] = context[SERVER.RemotePort];
+  response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
+  response[SERVER.LocalPort] = context[SERVER.LocalPort];
+  response[SERVER.RawStream] = socket;
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
+
   socket.once("close", this._onDisconnect.bind(this, context));
 
   this._connections[context[SERVER.SessionId]] = socket;
@@ -134,18 +142,20 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
 
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
   delete this._connections[context[SERVER.SessionId]];
- 
-  if (context.dispose)
-  {
+
+  if (context.dispose) {
     context[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-    process.nextTick(function(){if (context.dispose) context.dispose();});
+    process.nextTick(function () { if (context.dispose) context.dispose(); });
     context[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
   }
 };
 
 TcpServer.prototype._invoke = function TcpServer_invoke(context) {
+
   context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  return context.using(this._appFunc);
+  context[SERVER.Dispatch] = this._dispatch;
+  context.using(this._appFunc);
+
 };
 
 /**
@@ -156,8 +166,8 @@ TcpServer.prototype._invoke = function TcpServer_invoke(context) {
  * @returns Promise<context>
  * @public
  */
-TcpServer.prototype.connect = function TcpServer_connect(urlStr) {
-  return this._tcpClient.connect(urlStr);
+TcpServer.prototype.connect = function TcpServer_connect(urlStr, defaults) {
+  return this._tcpClient.connect(urlStr, defaults);
 };
 
 /**
@@ -172,13 +182,13 @@ TcpServer.prototype.connect = function TcpServer_connect(urlStr) {
  * @public
  */
 TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFetch(originalContext, path, options, pipeline) {
- var originalResponse = originalContext.response; 
- 
   if (typeof options === 'function') {
     pipeline = options;
     options = {};
   }
-  
+
+  var originalResponse = originalContext.response;
+
   var urlStr = originalContext[IOPA.Scheme] +
     "//" +
     originalResponse[SERVER.RemoteAddress] + ":" + originalResponse[SERVER.RemotePort] +
@@ -187,7 +197,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
 
   var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
   originalContext[SERVER.Factory].mergeCapabilities(context, originalContext);
- 
+
   var response = context.response;
   
   //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
@@ -195,14 +205,18 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   response[SERVER.RawStream] = originalContext[SERVER.RawStream];
 
   context[SERVER.LocalAddress] = originalResponse[SERVER.LocalAddress];
-  context[SERVER.LocalPort] = originalResponse[SERVER.LocalPort]; 
+  context[SERVER.LocalPort] = originalResponse[SERVER.LocalPort];
   context[SERVER.SessionId] = originalResponse[SERVER.SessionId];
 
   response[SERVER.LocalAddress] = response[SERVER.LocalAddress];
-  response[SERVER.LocalPort] = response[SERVER.LocalPort]; 
+  response[SERVER.LocalPort] = response[SERVER.LocalPort];
   response[SERVER.SessionId] = response[SERVER.SessionId];
-    
-  return context.using(pipeline);
+
+  return context.using(function () {
+    var value = originalContext[SERVER.Dispatch](context);
+    pipeline(context);
+    return value;
+  });
 };
 
 /**
