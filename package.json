@@ -32,7 +32,8 @@
   },
   "scripts": {
     "test": "mocha --reporter spec test",
-    "typings": "tsd reinstall --overwrite --clean --config tools/tsd.json && tsd link"
+       "quick": "git add . -A && git commit --allow-empty -m 'dev test' && npm version patch && npm publish",
+     "typings": "tsd reinstall --overwrite --clean --config tools/tsd.json && tsd link"
   },
   "devDependencies": {
     "bl": "^1.0.0",
