@@ -156,10 +156,13 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
 TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, err) {
   if (channelContext[IOPA.Events]){
     channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
+    channelContext[IOPA.Events] = null;
     channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
     delete this._connections[channelContext[SERVER.SessionId]];
-    channelContext[SERVER.RawTransport].destroy();
-    channelContext.dispose();
+    setTimeout(function(){
+        channelContext[SERVER.RawTransport].destroy();
+        channelContext.dispose();
+    }, 100);
   }
 }
 
@@ -176,7 +179,12 @@ TcpClient.prototype.close = function TcpClient_close() {
 
   this._connections = {};
 
-  return Promise.resolve(null);
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      resolve(null);
+    }, 200);
+  });
+
 };
 
 module.exports = TcpClient;

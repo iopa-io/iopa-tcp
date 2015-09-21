@@ -80,8 +80,7 @@ describe('#TCPServer()', function() {
     });
     
     it('server should close', function(done) {
-        server.close();
-        process.nextTick(done);
+        server.close().then(done);
     });
     
     it('client disconnects, server should also close', function (done) {
@@ -93,9 +92,10 @@ describe('#TCPServer()', function() {
             channelContext["iopa.CallCancelled"].onCancelled(
                 function (reason) {
                     reason.code.should.equal('OperationCancelled');
-                    done();
-                    channelContext["test.SessionClose"]();
-                    server2.close();
+                    server2.close().then(function(){
+                        done();
+                        channelContext["test.SessionClose"]();
+                         })
                 });
 
             return next().then(function () {

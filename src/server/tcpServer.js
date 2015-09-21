@@ -229,14 +229,20 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
 TcpServer.prototype.close = function TcpServer_close() {
   if (this._tcpClient)
     this._tcpClient.close();
+  var self = this;
+  var p = new Promise(function (resolve) {
+    setTimeout(function () {
+      for (var key in this._connections)
+        self._connections[key].destroy();
+      self._tcp.close();
+      self._tcpClient = undefined;
+      self._tcp = undefined;
+      self = null;
+      resolve(null);
+    }, 300)
+  })
 
-  for (var key in this._connections)
-    this._connections[key].destroy();
-
-  this._tcp.close();
-  this._tcpClient = undefined;
-  this._tcp = undefined;
-  return Promise.resolve(null);
+  return p;
 };
 
 module.exports = TcpServer;
