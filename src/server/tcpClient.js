@@ -79,8 +79,7 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
 
   channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
   channelContext[SERVER.Dispatch] = this._dispatch;
- 
-  channelContext.disconnect = this._disconnect.bind(this, channelContext);
+  channelContext[SERVER.Disconnect] = this._disconnect.bind(this, channelContext);
 
   var that = this;
   return new Promise(function (resolve, reject) {

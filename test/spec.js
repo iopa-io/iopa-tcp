@@ -65,7 +65,7 @@ describe('#TCPServer()', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client.fetch("/",
+                client["server.Fetch"]("/",
                     { "iopa.Method": "GET", "iopa.Body": new BufferList() },
                     function (context) {
                         try{
@@ -117,7 +117,7 @@ describe('#TCPServer()', function() {
                 return server2.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-                 client.fetch("/",
+                 client["server.Fetch"]("/",
                     { "iopa.Method": "GET", "iopa.Body": new BufferList() },
                     function (context) {
                        context["iopa.Body"].pipe(context["server.RawStream"]);
