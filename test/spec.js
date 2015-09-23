@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ global.Promise =require('bluebird');
  
 const iopa = require('iopa')
     , tcp = require('../index.js')
@@ -89,9 +90,9 @@ describe('#TCPServer()', function() {
         var app = new iopa.App();
         app.use(function (channelContext, next) {
 
-            channelContext["iopa.CallCancelled"].onCancelled(
+            channelContext["iopa.CancelToken"].promise.then(
                 function (reason) {
-                    reason.code.should.equal('OperationCancelled');
+                    reason.should.equal('disconnect');
                     server2.close().then(function(){
                         done();
                         channelContext["test.SessionClose"]();
@@ -149,11 +150,11 @@ describe('#TCPServer()', function() {
                 return server3.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-             client["iopa.CallCancelled"].onCancelled(function(reason){ 
-               reason.code.should.equal('OperationCancelled');
+             client["iopa.CancelToken"].promise.then(function(reason){ 
+               reason.should.equal("disconnect");
                done();
-              });
-            
+             });
+                       
               server3.close();
               return null;
           });

@@ -57,8 +57,6 @@ function TcpServer(options, appFunc) {
   this._factory = new iopa.Factory(options);
   this._appFunc = appFunc;
 
-  this.on(IOPA.EVENTS.Request, this._invoke.bind(this));
-
   this._connect = this._appFunc.connect || function (context) { return Promise.resolve(context) };
   this._dispatch = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
 
@@ -123,6 +121,9 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
+ 
+  context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
+  context[SERVER.Dispatch] = this._dispatch;
 
   var response = context.response;
   response[SERVER.TLS] = context[SERVER.TLS];
@@ -134,28 +135,18 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
-  socket.once("close", this._onDisconnect.bind(this, context));
+  socket.once("close", this._onDisconnect.bind(this, context, context[IOPA.CancelToken]));
 
   this._connections[context[SERVER.SessionId]] = socket;
-  this.emit(IOPA.EVENTS.Request, context);
-};
-
-TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context) {
-  delete this._connections[context[SERVER.SessionId]];
-
-  if (context.dispose) {
-    context[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-    process.nextTick(function () { if (context.dispose) context.dispose(); });
-    context[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
-  }
-};
-
-TcpServer.prototype._invoke = function TcpServer_invoke(context) {
-
-  context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  context[SERVER.Dispatch] = this._dispatch;
   context.using(this._appFunc);
+};
 
+TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context, canceltoken) {
+  if (canceltoken.isCancelled)
+    return;
+    
+  delete this._connections[context[SERVER.SessionId]];
+  context[SERVER.CancelTokenSource].cancel(IOPA.EVENTS.Disconnect);
 };
 
 /**
@@ -239,7 +230,7 @@ TcpServer.prototype.close = function TcpServer_close() {
       self._tcp = undefined;
       self = null;
       resolve(null);
-    }, 300)
+    }, 200)
   })
 
   return p;

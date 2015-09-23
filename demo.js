@@ -24,8 +24,10 @@ var app = new iopa.App();
 
  app.channeluse(function(channelContext, next){
     console.log("CHANNEL");
+    channelContext["server.RawStream"].pipe(process.stdout);
     return next();
   });
+  
   app.use(function(channelContext, next){
     console.log("INVOKE");
     channelContext["server.RawStream"].pipe(process.stdout);
@@ -39,6 +41,7 @@ var app = new iopa.App();
   
   app.dispatchuse(function(context, next){
     console.log("DISPATCH");
+    context["server.RawStream"].write(context["iopa.Body"]);
     return next();
   });
 
@@ -56,7 +59,7 @@ server.listen(process.env.PORT, process.env.IP)
     console.log("Client is on port " + client["server.LocalPort"]);
     var options = { "iopa.Body": "Hello World\n" }
     client.fetch("/", options, function (context) {
-      context["server.RawStream"].write(context["iopa.Body"]);
+       console.log("FETCH");
     });
   })
    

@@ -78,7 +78,7 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
   var channelResponse = channelContext.response;
 
   channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
-   channelContext[SERVER.Dispatch] = this._dispatch;
+  channelContext[SERVER.Dispatch] = this._dispatch;
  
   channelContext.disconnect = this._disconnect.bind(this, channelContext);
 
@@ -154,16 +154,16 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
  * @public
  */
 TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, err) {
-  if (channelContext[IOPA.Events]){
-    channelContext[IOPA.Events].emit(IOPA.EVENTS.Disconnect);
-    channelContext[IOPA.Events] = null;
-    channelContext[SERVER.CallCancelledSource].cancel(IOPA.EVENTS.Disconnect);
-    delete this._connections[channelContext[SERVER.SessionId]];
-    setTimeout(function(){
-        channelContext[SERVER.RawTransport].destroy();
-        channelContext.dispose();
-    }, 100);
-  }
+  if (channelContext[IOPA.CancelToken].isCancelled)
+     return;
+     
+  channelContext[IOPA.Events] = null;
+  channelContext[SERVER.CancelTokenSource].cancel(IOPA.EVENTS.Disconnect);
+  delete this._connections[channelContext[SERVER.SessionId]];
+  setTimeout(function(){
+      channelContext[SERVER.RawTransport].destroy();
+      channelContext.dispose();
+  }, 100);
 }
 
 /**
