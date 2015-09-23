@@ -90,7 +90,7 @@ describe('#TCPServer()', function() {
         var app = new iopa.App();
         app.use(function (channelContext, next) {
 
-            channelContext["iopa.CancelToken"].promise.then(
+            channelContext["iopa.CancelToken"].onCancelled.then(
                 function (reason) {
                     reason.should.equal('disconnect');
                     server2.close().then(function(){
@@ -150,7 +150,7 @@ describe('#TCPServer()', function() {
                 return server3.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-             client["iopa.CancelToken"].promise.then(function(reason){ 
+             client["iopa.CancelToken"].onCancelled.then(function(reason){ 
                reason.should.equal("disconnect");
                done();
              });
