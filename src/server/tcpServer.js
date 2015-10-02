@@ -135,7 +135,7 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
 
-  socket.once("close", this._onDisconnect.bind(this, context, context[IOPA.CancelToken]));
+  socket.once("finish", this._onDisconnect.bind(this, context, context[IOPA.CancelToken]));
 
   this._connections[context[SERVER.SessionId]] = socket;
   context.using(this._appFunc);
