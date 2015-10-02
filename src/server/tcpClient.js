@@ -117,9 +117,10 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
  * @returns Promise<null>
  * @public
  */
-function TcpClient_Fetch(channelContext, path, options, pipeline) {
+function TcpClient_Fetch(channelContext, path, options, prePipeline, postPipeline) {
   if (typeof options === 'function') {
-    pipeline = options;
+    postPipeline = prePipeline;
+    prePipeline = options;
     options = {};
   }
   
@@ -139,9 +140,15 @@ function TcpClient_Fetch(channelContext, path, options, pipeline) {
   response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
   response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
       
-  return context.using(function () {
+   return context.using(function () {
+    if (prePipeline)
+       prePipeline(context);
+       
     var value = channelContext[SERVER.Dispatch](context);
-    pipeline(context);
+    
+    if (postPipeline)
+       postPipeline(context);
+       
     return value;
   });
 };
