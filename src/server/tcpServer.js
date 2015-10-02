@@ -225,8 +225,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
  * @public
  */
 TcpServer.prototype.close = function TcpServer_close() {
-  console.log("TCP-CLOSE");
-  if (this._tcpClient)
+ if (this._tcpClient)
     this._tcpClient.close();
   var self = this;
   var p = new Promise(function (resolve) {

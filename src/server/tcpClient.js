@@ -161,8 +161,7 @@ TcpClient.prototype._disconnect = function TcpClient_disconnect(channelContext, 
   delete this._connections[channelContext[SERVER.SessionId]];
   setTimeout(function(){
       channelContext[SERVER.RawTransport].destroy();
-      console.log("CLIENT " + channelContext[IOPA.Seq]);
-      channelContext.dispose();
+       channelContext.dispose();
   }, 100);
 }
 
