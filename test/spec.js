@@ -31,14 +31,20 @@ describe('#TCPServer()', function() {
        before(function(done){
           var app = new iopa.App();
           app.use(function(channelContext, next){
-            channelContext["server.RawStream"].on("data", function(chunk){
+             channelContext["server.RawStream"].on("data", function(chunk){
                events.emit("test.Data", chunk);
                data.append(chunk);
             });
              channelContext["server.RawStream"].on("end", function(){
+                channelContext["test.SessionClose"]();
                events.emit("test.Finish", data);
             });
-            return next();  
+             return next().then(function () {
+                return new Promise(function (resolve, reject) {
+                    channelContext["test.SessionClose"] = resolve;
+                    channelContext["test.SessionError"] = reject;
+              });
+            });
           });
         
          server = tcp.createServer({}, app.build());
@@ -79,7 +85,7 @@ describe('#TCPServer()', function() {
                     });
             })
     });
-    
+     
     it('server should close', function(done) {
         server.close().then(done);
     });

@@ -134,11 +134,18 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   response[SERVER.RawStream] = socket;
   response[SERVER.IsLocalOrigin] = true;
   response[SERVER.IsRequest] = false;
-
-  socket.once("finish", this._onDisconnect.bind(this, context, context[IOPA.CancelToken]));
-
+  var cancelToken = context[IOPA.CancelToken];
+  socket.on("finish", this._onDisconnect.bind(this, context, cancelToken));
+ 
   this._connections[context[SERVER.SessionId]] = socket;
-  context.using(this._appFunc);
+  var that = this;
+   context.using(
+     function(context){
+      return that._appFunc(context)
+       .then(function(){
+         that._onDisconnect(context, cancelToken)
+       })
+     });
 };
 
 TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(context, canceltoken) {
@@ -218,6 +225,7 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
  * @public
  */
 TcpServer.prototype.close = function TcpServer_close() {
+  console.log("TCP-CLOSE");
   if (this._tcpClient)
     this._tcpClient.close();
   var self = this;
