@@ -147,9 +147,12 @@ function TcpClient_Fetch(channelContext, path, options, prePipeline, postPipelin
     var value = channelContext[SERVER.Dispatch](context);
     
     if (postPipeline)
-       postPipeline(context);
-       
-    return value;
+     return  value.then
+     (function(){
+        return postPipeline(context);
+     })
+      
+    else return value;
   });
 };
 
