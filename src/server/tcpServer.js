@@ -107,7 +107,9 @@ TcpServer.prototype.listen = function TcpServer_listen(port, address) {
 
 Object.defineProperty(TcpServer.prototype, "port", { get: function () { return this._port; } });
 Object.defineProperty(TcpServer.prototype, "address", { get: function () { return this._address; } });
-
+Object.defineProperty(TcpServer.prototype, SERVER.LocalPort, { get: function () { return this._port; } });
+Object.defineProperty(TcpServer.prototype, SERVER.LocalAddress, { get: function () { return this._address; } });
+     
 TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   var context = this._factory.createContext();
   context[IOPA.Method] = IOPA.METHODS.connect;
@@ -230,6 +232,7 @@ TcpServer.prototype.close = function TcpServer_close() {
   var self = this;
   var p = new Promise(function (resolve) {
     setTimeout(function () {
+      self.emit("close");
       for (var key in this._connections)
         self._connections[key].destroy();
       self._tcp.close();

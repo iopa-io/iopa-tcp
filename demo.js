@@ -21,6 +21,7 @@ const iopa = require('iopa')
   , tcp = require('./index.js')
  
 var app = new iopa.App();
+ app.use(tcp);
 
  app.channeluse(function(channelContext, next){
     console.log("CHANNEL");
@@ -45,14 +46,14 @@ var app = new iopa.App();
     return next();
   });
 
-var server = tcp.createServer(app.build());
+var server = app.createServer("tcp:");
 
 if (!process.env.PORT)
   process.env.PORT = 1883;
 
 server.listen(process.env.PORT, process.env.IP)
   .then(function () {
-    console.log("Server is on port " + server.port);
+    console.log("Server is on port " + server["server.LocalPort"]);
     return server.connect("mqtt://127.0.0.1");
   })
   .then(function (client) {

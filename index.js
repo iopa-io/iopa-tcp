@@ -16,7 +16,9 @@
 
 var Server = require('./src/server/tcpServer.js');
 var Client = require('./src/server/tcpClient.js');
+var Middleware = require('./src/server/tcp.js');
 
+module.exports = Middleware;
 module.exports.createServer = function(options, appFunc){return new Server(options, appFunc);}
 module.exports.Server = Server;
 module.exports.Client = Client;
