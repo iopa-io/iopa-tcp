@@ -39,7 +39,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 * @public
 * @constructor
 */
-function TcpClient(options, appFuncConnect, appFuncDispatch) {
+function TcpClient(options, appFuncConnect, appFuncCreate, appFuncDispatch) {
   
   _classCallCheck(this, TcpClient);
 
@@ -51,9 +51,10 @@ function TcpClient(options, appFuncConnect, appFuncDispatch) {
   
   events.EventEmitter.call(this);
 
-  this._connect = appFuncConnect || function(context){return Promise.resolve(context)};
-  this._dispatch = appFuncDispatch || function(context){return Promise.resolve(context)};
-  
+  this._connectFunc = appFuncConnect || function(context){return Promise.resolve(context)};
+  this._createFunc = appFuncCreate || function (context) { return context };
+   this._dispatchFunc = appFuncDispatch || function(context){return Promise.resolve(context)};
+ 
   this._options = options;
   this._factory = new iopa.Factory(options);
   this._connections = {};
@@ -77,9 +78,9 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
   var channelContext = this._factory.createRequestResponse(urlStr, defaults);
   var channelResponse = channelContext.response;
 
-  channelContext[SERVER.Fetch] = TcpClient_Fetch.bind(this, channelContext);
-  channelContext[SERVER.Dispatch] = this._dispatch;
-  channelContext[SERVER.Disconnect] = this._disconnect.bind(this, channelContext);
+  channelContext.create = this._create.bind(this, channelContext, channelContext.response);
+  channelContext.dispatch = this._dispatchFunc;
+  channelContext.disconnect = this._disconnect.bind(this, channelContext);
 
   var that = this;
   return new Promise(function (resolve, reject) {
@@ -101,60 +102,59 @@ TcpClient.prototype.connect = function TcpClient_connect(urlStr, defaults) {
         socket.once('error', that._disconnect.bind(that, channelContext));
         channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
         that._connections[channelContext[SERVER.SessionId]] = channelContext;
-        resolve(that._connect(channelContext));
+        resolve(that._connectFunc(channelContext));
       });
   });
 };
  
 /**
- * Fetches a new IOPA Request using a Tcp Url including host and port name
+ * Creates a new IOPA Request using a Tcp Url including host and port name
  *
- * @method fetch
-
+ * @method create
+ *
  * @param path string representation of ://127.0.0.1/hello
  * @param options object dictionary to override defaults
- * @param pipeline function(context):Promise  to call with context record
- * @returns Promise<null>
+ * @returns context
  * @public
  */
-function TcpClient_Fetch(channelContext, path, options, prePipeline, postPipeline) {
-  if (typeof options === 'function') {
-    postPipeline = prePipeline;
-    prePipeline = options;
-    options = {};
-  }
-  
-  var channelResponse = channelContext.response;
+TcpClient.prototype._create = function TcpClient_create(originalContext, originalResponse, path, options) {
 
-  var urlStr = channelContext[SERVER.OriginalUrl] + path;
-  var context = channelContext[SERVER.Factory].createRequestResponse(urlStr, options);
-  channelContext[SERVER.Factory].mergeCapabilities(context, channelContext);
- 
-  context[SERVER.LocalAddress] = channelContext[SERVER.LocalAddress];
-  context[SERVER.LocalPort] = channelContext[SERVER.LocalPort];
-  context[SERVER.RawStream] = channelContext[SERVER.RawStream];
-  context[SERVER.SessionId] = channelContext[SERVER.SessionId];
-  
+  var urlStr = originalContext[IOPA.Scheme] +
+    "//" +
+    originalResponse[SERVER.RemoteAddress] + ":" + originalResponse[SERVER.RemotePort] +
+    originalContext[IOPA.PathBase] +
+    originalContext[IOPA.Path];
+
+  if (path)
+    urlStr += path;
+
+  var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
+  originalContext[SERVER.Factory].mergeCapabilities(context, originalContext);
+
   var response = context.response;
-  response[SERVER.LocalAddress] = channelResponse[SERVER.LocalAddress];
-  response[SERVER.LocalPort] = channelResponse[SERVER.LocalPort];
-  response[SERVER.RawStream] = channelResponse[SERVER.RawStream];
-      
-   return context.using(function () {
-    if (prePipeline)
-       prePipeline(context);
-       
-    var value = channelContext[SERVER.Dispatch](context);
-    
-    if (postPipeline)
-     return  value.then
-     (function(){
-        return postPipeline(context);
-     })
-      
-    else return value;
-  });
+  
+  context[SERVER.RawStream] = originalContext[SERVER.RawStream];
+  response[SERVER.RawStream] = originalResponse[SERVER.RawStream];
+
+  context[SERVER.LocalAddress] = originalResponse[SERVER.LocalAddress];
+  context[SERVER.LocalPort] = originalResponse[SERVER.LocalPort];
+  context[SERVER.SessionId] = originalResponse[SERVER.SessionId];
+
+  response[SERVER.LocalAddress] = response[SERVER.LocalAddress];
+  response[SERVER.LocalPort] = response[SERVER.LocalPort];
+  response[SERVER.SessionId] = response[SERVER.SessionId];
+
+  var that = this;
+  context.dispatch = function (dispose) {
+    if (dispose)
+      return that._dispatchFunc(context).then(context.dispose)
+    else
+      return that._dispatchFunc(context);
+  }
+
+  return this._createFunc(context);
 };
+
 
 /**
  * @method close

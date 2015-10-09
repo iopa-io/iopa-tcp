@@ -57,10 +57,11 @@ function TcpServer(options, appFunc) {
   this._factory = new iopa.Factory(options);
   this._appFunc = appFunc;
 
-  this._connect = this._appFunc.connect || function (context) { return Promise.resolve(context) };
-  this._dispatch = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
+  this._connectFunc = this._appFunc.connect || function (context) { return Promise.resolve(context) };
+  this._createFunc = this._appFunc.create || function (context) { return context };
+  this._dispatchFunc = this._appFunc.dispatch || function (context) { return Promise.resolve(context) };
 
-  this._tcpClient = new TcpClient(options, this._connect, this._dispatch);
+  this._tcpClient = new TcpClient(options, this._connectFunc, this._createFunc, this._dispatchFunc);
 
   this._connections = {};
 }
@@ -123,9 +124,8 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
- 
-  context[SERVER.Fetch] = this.requestResponseFetch.bind(this, context);
-  context[SERVER.Dispatch] = this._dispatch;
+  context.create = this._create.bind(this, context, response);
+  context.dispatch = this._dispatchFunc;
 
   var response = context.response;
   response[SERVER.TLS] = context[SERVER.TLS];
@@ -171,36 +171,31 @@ TcpServer.prototype.connect = function TcpServer_connect(urlStr, defaults) {
 };
 
 /**
- * Fetches a new IOPA Request using a Tcp Url including host and port name
+ * Creates a new IOPA Request using a Tcp Url including host and port name
  *
- * @method fetch
-
+ * @method create
+ *
  * @param path string representation of ://127.0.0.1/hello
  * @param options object dictionary to override defaults
- * @param pipeline function(context):Promise  to call with context record
- * @returns Promise<null>
+ * @returns context
  * @public
  */
-TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFetch(originalContext, path, options, pipeline) {
-  if (typeof options === 'function') {
-    pipeline = options;
-    options = {};
-  }
-
-  var originalResponse = originalContext.response;
+TcpServer.prototype._create = function TcpServer_create(originalContext, originalResponse, path, options) {
 
   var urlStr = originalContext[IOPA.Scheme] +
     "//" +
     originalResponse[SERVER.RemoteAddress] + ":" + originalResponse[SERVER.RemotePort] +
     originalContext[IOPA.PathBase] +
-    originalContext[IOPA.Path] + path;
+    originalContext[IOPA.Path];
+
+  if (path)
+    urlStr += path;
 
   var context = originalContext[SERVER.Factory].createRequestResponse(urlStr, options);
   originalContext[SERVER.Factory].mergeCapabilities(context, originalContext);
 
   var response = context.response;
   
-  //REVERSE STREAMS SINCE SENDING REQUEST (e.g., PUBLISH) BACK ON RESPONSE CHANNEL
   context[SERVER.RawStream] = originalResponse[SERVER.RawStream];
   response[SERVER.RawStream] = originalContext[SERVER.RawStream];
 
@@ -212,11 +207,15 @@ TcpServer.prototype.requestResponseFetch = function TcpServer_requestResponseFet
   response[SERVER.LocalPort] = response[SERVER.LocalPort];
   response[SERVER.SessionId] = response[SERVER.SessionId];
 
-  return context.using(function () {
-    var value = originalContext[SERVER.Dispatch](context);
-    pipeline(context);
-    return value;
-  });
+  var that = this;
+  context.dispatch = function (dispose) {
+    if (dispose)
+      return that._dispatchFunc(context).then(context.dispose)
+    else
+      return that._dispatchFunc(context);
+  }
+
+  return this._createFunc(context);
 };
 
 /**

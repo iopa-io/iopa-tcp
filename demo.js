@@ -59,8 +59,6 @@ server.listen(process.env.PORT, process.env.IP)
   .then(function (client) {
     console.log("Client is on port " + client["server.LocalPort"]);
     var options = { "iopa.Body": "Hello World\n" }
-    client["server.Fetch"]("/", options, function (context) {
-       console.log("FETCH");
-    });
+    return client.create("/", options).dispatch(true);
   })
    

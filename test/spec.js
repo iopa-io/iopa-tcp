@@ -71,18 +71,18 @@ describe('#TCPServer()', function() {
                     data.toString().should.equal('Hello World');
                     done();
                 });
-                client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                        try{
-                        context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].write("Hello ");
-                        context["iopa.Body"].end("World");
-                        } catch (ex) {
-                            console.log(ex);
-                            return Promise.reject(ex);
-                        }
-                    });
+                var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].write("Hello ");
+                    context["iopa.Body"].end("World");
+                    return context.dispatch(true);
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+
             })
     });
      
@@ -123,13 +123,18 @@ describe('#TCPServer()', function() {
                 return server2.connect("mqtt://127.0.0.1")
               })
           .then(function(client){
-                 client["server.Fetch"]("/",
-                    { "iopa.Method": "GET", "iopa.Body": new BufferList() },
-                    function (context) {
-                       context["iopa.Body"].pipe(context["server.RawStream"]);
-                        context["iopa.Body"].end("");
-                    });
-                });
+                  var context = client.create("/",
+                    { "iopa.Method": "GET", "iopa.Body": new BufferList() });
+                try {
+                    context["iopa.Body"].pipe(context["server.RawStream"]);
+                    context["iopa.Body"].end("");
+                    return context.dispatch(true);
+                } catch (ex) {
+                    console.log(ex);
+                    return Promise.reject(ex);
+                }
+
+            })
     });   
     
     it('server disconnects, client should also close', function(done) {
