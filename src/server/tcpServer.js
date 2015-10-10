@@ -113,7 +113,8 @@ Object.defineProperty(TcpServer.prototype, SERVER.LocalAddress, { get: function 
      
 TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   var context = this._factory.createContext();
-  context[IOPA.Method] = IOPA.METHODS.connect;
+  var response = context.response;
+ context[IOPA.Method] = IOPA.METHODS.connect;
 
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = socket.remoteAddress;
@@ -127,7 +128,6 @@ TcpServer.prototype._onConnection = function TcpServer_onConnection(socket) {
   context.create = this._create.bind(this, context, response);
   context.dispatch = this._dispatchFunc;
 
-  var response = context.response;
   response[SERVER.TLS] = context[SERVER.TLS];
   response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
   response[SERVER.RemotePort] = context[SERVER.RemotePort];
