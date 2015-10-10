@@ -199,13 +199,13 @@ TcpServer.prototype._create = function TcpServer_create(originalContext, origina
   context[SERVER.RawStream] = originalResponse[SERVER.RawStream];
   response[SERVER.RawStream] = originalContext[SERVER.RawStream];
 
-  context[SERVER.LocalAddress] = originalResponse[SERVER.LocalAddress];
-  context[SERVER.LocalPort] = originalResponse[SERVER.LocalPort];
-  context[SERVER.SessionId] = originalResponse[SERVER.SessionId];
+  context[SERVER.LocalAddress] = originalContext[SERVER.LocalAddress];
+  context[SERVER.LocalPort] = originalContext[SERVER.LocalPort];
+  context[SERVER.SessionId] = originalContext[SERVER.SessionId];
 
-  response[SERVER.LocalAddress] = response[SERVER.LocalAddress];
-  response[SERVER.LocalPort] = response[SERVER.LocalPort];
-  response[SERVER.SessionId] = response[SERVER.SessionId];
+  response[SERVER.LocalAddress] = context[SERVER.LocalAddress];
+  response[SERVER.LocalPort] = context[SERVER.LocalPort];
+  response[SERVER.SessionId] = context[SERVER.SessionId];
 
   var that = this;
   context.dispatch = function (dispose) {
