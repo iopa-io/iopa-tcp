@@ -207,13 +207,7 @@ TcpServer.prototype._create = function TcpServer_create(originalContext, origina
   response[SERVER.LocalPort] = context[SERVER.LocalPort];
   response[SERVER.SessionId] = context[SERVER.SessionId];
 
-  var that = this;
-  context.dispatch = function (dispose) {
-    if (dispose)
-      return that._dispatchFunc(context).then(context.dispose)
-    else
-      return that._dispatchFunc(context);
-  }
+  context.dispatch = this._dispatchFunc.bind(this, context);
 
   return this._createFunc(context);
 };

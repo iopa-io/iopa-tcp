@@ -36,8 +36,6 @@ var app = new iopa.App();
     return next();  
   });
 
-
-  
   app.connectuse(function(channelContext, next){
     console.log("CONNECT");
   

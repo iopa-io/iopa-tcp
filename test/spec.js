@@ -77,7 +77,7 @@ describe('#TCPServer()', function() {
                     context["iopa.Body"].pipe(context["server.RawStream"]);
                     context["iopa.Body"].write("Hello ");
                     context["iopa.Body"].end("World");
-                    return context.dispatch(true);
+                    return context.dispatch();
                 } catch (ex) {
                     console.log(ex);
                     return Promise.reject(ex);
@@ -128,7 +128,7 @@ describe('#TCPServer()', function() {
                 try {
                     context["iopa.Body"].pipe(context["server.RawStream"]);
                     context["iopa.Body"].end("");
-                    return context.dispatch(true);
+                    return context.dispatch();
                 } catch (ex) {
                     console.log(ex);
                     return Promise.reject(ex);
