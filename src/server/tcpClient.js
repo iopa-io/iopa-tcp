@@ -145,6 +145,7 @@ TcpClient.prototype._create = function TcpClient_create(originalContext, origina
   response[SERVER.SessionId] = context[SERVER.SessionId];
 
   context.dispatch =  this._dispatchFunc.bind(this, context);
+  response.dispatch =  this._dispatchFunc.bind(this, response);
 
   return this._createFunc(context);
 };
