@@ -46,10 +46,9 @@ app.build();
 if (!process.env.PORT)
   process.env.PORT = 1883;
 
-var _server;
-app.createServer("tcp:", { port: process.env.PORT, address: process.env.IP })
+var _server = app.createServer("tcp:");
+_server.listen({ port: process.env.PORT, address: process.env.IP })
   .then(function (server) {
-    _server = server;
     console.log("Server Started on port " + server.port);
     return server.connect("mqtt://127.0.0.1");
   })

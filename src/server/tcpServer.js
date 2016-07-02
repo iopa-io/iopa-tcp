@@ -41,7 +41,7 @@ function TcpServer(app) {
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp] = {};
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp][SERVER.Version] = packageVersion;
 
-  app.createServer = this.createServer.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
+  app.createServer = this.createServer_.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
 }
 
 /**
@@ -52,7 +52,7 @@ function TcpServer(app) {
  * @returns {Promise} 
  * @public
  */
-TcpServer.prototype.createServer = function TcpServer_createServer(next, scheme, options) {
+TcpServer.prototype.createServer_ = function TcpServer_createServer(next, scheme, options) {
   if (scheme != "tcp:") 
      return next(scheme, options)
 
@@ -60,28 +60,42 @@ TcpServer.prototype.createServer = function TcpServer_createServer(next, scheme,
   
   if (!this._app.properties[SERVER.IsBuilt]) 
     this._app.build();   
-
-  var port = options.port || 0;
-  var address = options.address || '0.0.0.0';
-
   var server = {};
-  server._tcp = net.createServer();
-  server._tcp.on("connection", this._onConnection.bind(this, server));
+
+   server._tcp = net.createServer();
+   server._connections = {};
+   server.listen = this.listen_.bind(this, server);
+   server.connect = (function(url) { return this._app.dispatch(this._app.createContext(url)); }).bind(this);
+   server.close = this.close_.bind(this, server);
+
+   server._tcp.on("connection", this._onConnection.bind(this, server));
+
+  return server;
+};
+
+/**
+ * @method listen_
+ * Create socket and bind to local port to listen for incoming requests
+ *
+ * @param {Object} Options dictionary that includes port num, address string
+ * @returns {Promise} 
+ * @public
+ */
+TcpServer.prototype.listen_ = function TcpServer_listen(server, options) {
+   options = options || {};
+
+  var port = options.port || options[IOPA.LocalPort] || 0;
+  var address = options.address || options[IOPA.LocalAddress] || '0.0.0.0';
+
   server.port = port;
   server.address = address;
-  var self = this;
-  server.connect = function(url) { return self._app.dispatch(self._app.createContext(url)); };
-  server._connections = {};
-
-  var self = this;
-
+ 
   return new Promise(function (resolve, reject) {
     server._tcp.listen(server.port, server.address,
       function () {
         var linfo = server._tcp.address();
         server.port = linfo.port;
         server.address = linfo.address;
-        server.close = self._onClose.bind(self, server);
         resolve(server);
       });
   });
@@ -140,7 +154,7 @@ TcpServer.prototype._onDisconnect = function TcpServer_onDisconnect(server, cont
  * @returns {Promise()}
  * @public
  */
-TcpServer.prototype._onClose = function TcpServer_close(server) {
+TcpServer.prototype.close_ = function TcpServer_close(server) {
   return new Promise(function (resolve) {
     setTimeout(function () {
       for (var key in server._connections)

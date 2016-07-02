@@ -13,58 +13,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 const iopa = require('iopa')
     , tcp = require('../index.js')
     , util = require('util')
     , Events = require('events')
     , BufferList = require('bl')
-    
+
 var should = require('should');
 
-describe('#TCPServer()', function() {
-       var server, app;
-       var events = new Events.EventEmitter();
-       var data = new BufferList();
-        
-       before(function(done){
-          app = new iopa.App();
-          app.use(tcp);
+describe('#TCPServer()', function () {
+    var server, app;
+    var events = new Events.EventEmitter();
+    var data = new BufferList();
 
-          app.use(function(channelContext, next){
-             channelContext["server.RawStream"].on("data", function(chunk){
-               events.emit("test.Data", chunk);
-               data.append(chunk);
+    before(function (done) {
+        app = new iopa.App();
+        app.use(tcp);
+
+        app.use(function (channelContext, next) {
+            channelContext["server.RawStream"].on("data", function (chunk) {
+                events.emit("test.Data", chunk);
+                data.append(chunk);
             });
-             channelContext["server.RawStream"].on("end", function(){
+            channelContext["server.RawStream"].on("end", function () {
                 channelContext["test.SessionClose"]();
                 events.emit("test.Finish", data);
             });
-             return next().then(function () {
+            return next().then(function () {
                 return new Promise(function (resolve, reject) {
                     channelContext["test.SessionClose"] = resolve;
                     channelContext["test.SessionError"] = reject;
-              });
+                });
             });
-          });
-        
-        
-  
-         if (!process.env.PORT)
-          process.env.PORT = 1883;
+        });
 
-        app.createServer("tcp:", {port: process.env.PORT, address: process.env.IP} )
-          .then(function(context){
-              server = context;
-           done();
-           });
- 
-      });
-      
-    it('server should listen', function() {
-        console.log("Server is on port " + server.port );
+
+
+        if (!process.env.PORT)
+            process.env.PORT = 1883;
+
+        server = app.createServer("tcp:");
+        server.listen({ port: process.env.PORT, address: process.env.IP })
+            .then(function () {
+                done();
+            });
+
     });
-    
+
+    it('server should listen', function () {
+        console.log("Server is on port " + server.port);
+    });
+
     it('client should connect and server should receive client packets', function (done) {
         app.dispatch(app.createContext("mqtt://127.0.0.1"))
             .then(function (client) {
@@ -83,14 +83,12 @@ describe('#TCPServer()', function() {
 
             })
     });
-     
-    it('server should close', function(done) {
+
+    it('server should close', function (done) {
         server.close().then(done);
     });
-    
-    it('client disconnects, server should also close', function (done) {
-        var server2;
 
+    it('client disconnects, server should also close', function (done) {
         var app = new iopa.App();
         app.use(tcp);
         app.use(function (channelContext, next) {
@@ -98,10 +96,10 @@ describe('#TCPServer()', function() {
             channelContext["server.CancelToken"].onCancelled(
                 function (reason) {
                     reason.should.equal('disconnect');
-                    server2.close().then(function(){
+                    server2.close().then(function () {
                         done();
                         channelContext["test.SessionClose"]();
-                         })
+                    })
                 });
 
             return next().then(function () {
@@ -115,14 +113,12 @@ describe('#TCPServer()', function() {
         if (!process.env.PORT)
             process.env.PORT = 1883;
 
-        var server2;
-
-        app.createServer("tcp:", {port: process.env.PORT, address: process.env.IP} )
-         .then(function(server){
-               server2 = server;
-               return app.dispatch(app.createContext("mqtt://127.0.0.1"))
-              })
-          .then(function(client){
+        var server2 =  app.createServer("tcp:")
+        server2.listen( { port: process.env.PORT, address: process.env.IP })
+            .then(function () {
+                return server2.connect("mqtt://127.0.0.1")
+            })
+            .then(function (client) {
                 try {
                     client["server.RawStream"].end("");
                 } catch (ex) {
@@ -131,41 +127,41 @@ describe('#TCPServer()', function() {
                 }
 
             })
-    });   
-    
-    it('server disconnects, client should also close', function(done) {
-      
-          //serverPipeline 
-          var serverChannelApp = new iopa.App();
-          serverChannelApp.use(tcp);
-          serverChannelApp.use(function(channelContext, next){
-              return next().then(function(){ return new Promise(function(resolve, reject){
-                 channelContext["mqttPacketServer.SessionClose"] = resolve;
-                 channelContext["mqttPacketServer.SessionError"] = reject;
-                }); 
-            });
-          });
-
-          var serverPipeline = serverChannelApp.build();
-     
-         if (!process.env.PORT)
-           process.env.PORT = 1883;
-          var server3;
-          app.createServer("tcp:", {port: process.env.PORT, address: process.env.IP} )
-          .then(function(server){
-                 server3 = server;
-                 return app.dispatch(app.createContext("mqtt://127.0.0.1"))
-              })
-          .then(function(client){
-             client["server.CancelToken"].onCancelled(function(reason){ 
-               reason.should.equal("disconnect");
-               done();
-             });
-                       
-              server3.close();
-              return null;
-          });
     });
-    
+
+    it('server disconnects, client should also close', function (done) {
+
+        //serverPipeline 
+        var serverChannelApp = new iopa.App();
+        serverChannelApp.use(tcp);
+        serverChannelApp.use(function (channelContext, next) {
+            return next().then(function () {
+                return new Promise(function (resolve, reject) {
+                    channelContext["mqttPacketServer.SessionClose"] = resolve;
+                    channelContext["mqttPacketServer.SessionError"] = reject;
+                });
+            });
+        });
+
+        var serverPipeline = serverChannelApp.build();
+
+        if (!process.env.PORT)
+            process.env.PORT = 1883;
+        var server3 = app.createServer("tcp:");
+        server3.listen({ port: process.env.PORT, address: process.env.IP })
+            .then(function () {
+                return app.dispatch(app.createContext("mqtt://127.0.0.1"))
+            })
+            .then(function (client) {
+                client["server.CancelToken"].onCancelled(function (reason) {
+                    reason.should.equal("disconnect");
+                    done();
+                });
+
+                server3.close();
+                return null;
+            });
+    });
+
 });
 
