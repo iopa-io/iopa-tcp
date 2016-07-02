@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Internet of Protocols Alliance (IOPA)
+ * Copyright (c) 2016 Internet of Protocols Alliance (IOPA)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,5 @@ var Client = require('./src/server/tcpClient.js');
 var Middleware = require('./src/server/tcp.js');
 
 module.exports = Middleware;
-module.exports.createServer = function(options, appFunc){return new Server(options, appFunc);}
 module.exports.Server = Server;
 module.exports.Client = Client;

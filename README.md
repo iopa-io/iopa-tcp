@@ -25,12 +25,11 @@ Includes:
 
 ### Server Functions
 
-  * listen
+  * app.createServer
   * close
   
 ### Client Functions
   * connect
-  * fetch
   
 ## Installation
 
@@ -48,25 +47,24 @@ const iopa = require('iopa')
  
 var app = new iopa.App();
 
-app.use(function (channelContext, next) {
-  channelContext["server.RawStream"].pipe(process.stdout);
+app.use(tcp);
+
+app.use(function (context, next) {
+  context["server.RawStream"].pipe(process.stdout);
   return next();
 });
 
-var server = tcp.createServer(app.build());
-
 if (!process.env.PORT)
   process.env.PORT = 1883;
-  
-server.listen(process.env.PORT, process.env.IP)
 
-  .then(function () {
+app.createServer("tcp:", { port: process.env.PORT, address: process.env.IP })
+
+  .then(function (server) {
     return server.connect("mqtt://127.0.0.1");
   })
   
   .then(function (client) {
-    client.fetch("/", { "iopa.Body": "Hello World\n" } , function (context) 
-      context["server.RawStream"].write(context["iopa.Body"]);
+      client["server.RawStream"].write("Hello World\n");
     });
     
   })

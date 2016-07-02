@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Internet of Protocols Alliance (IOPA)
+ * Copyright (c) 2016 Internet of Protocols Alliance (IOPA)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,59 +14,50 @@
  * limitations under the License.
  */
 
-
-global.Promise = require('bluebird');
+// global.Promise = require('bluebird');
 
 const iopa = require('iopa'),
-   iopaStream = require('iopa-common-stream'),
-   tcp = require('./index.js')
- 
+  iopaStream = require('iopa-common-stream'),
+  tcp = require('./index.js')
+
 var app = new iopa.App();
- app.use(tcp);
+app.use(tcp);
 
- app.channeluse(function(channelContext, next){
-    console.log("CHANNEL");
-    channelContext["server.RawStream"].pipe(process.stdout);
-    return next();
-  });
-  
-  app.use(function(channelContext, next){
-    console.log("INVOKE");
-    channelContext["server.RawStream"].pipe(process.stdout);
-    return next();  
-  });
+app.use(function (channelContext, next) {
+  channelContext["server.RawStream"].pipe(process.stdout);
+  return next();
+});
 
-  app.connectuse(function(channelContext, next){
-    console.log("CONNECT");
-  
-    return next();
-  });
-    
- app.createuse(function(context, next){
-    console.log("CREATE");
-    context["iopa.Body"] = new iopaStream.OutgoingStream();
-    context["iopa.Body"].once("finish", context.dispatch.bind(this, context));  
-    return next();
-  });
-  
-  app.dispatchuse(function(context, next){
-    console.log("DISPATCH");
-    context["iopa.Body"].pipe(context["server.RawStream"]);
-    return next();
-  });
+app.use("dispatch", function (context, next) {
+  return next().then(function () {
+    context[IOPA.Body].pipe(context["server.RawStream"]);
+    return context;
+  })
+});
 
-var server = app.createServer("tcp:");
+ app.createContext = (function IopaTCP_create(next, urlStr) {
+  var context = next(urlStr);
+  context[IOPA.Body] = new iopaStream.OutgoingStream();
+  return context;
+}).bind(this, app.createContext.bind(app));
+
+app.build();
 
 if (!process.env.PORT)
   process.env.PORT = 1883;
 
-server.listen(process.env.PORT, process.env.IP)
-  .then(function () {
-    console.log("Server is on port " + server["server.LocalPort"]);
+var _server;
+app.createServer("tcp:", { port: process.env.PORT, address: process.env.IP })
+  .then(function (server) {
+    _server = server;
+    console.log("Server Started on port " + server.port);
     return server.connect("mqtt://127.0.0.1");
   })
   .then(function (client) {
     console.log("Client is on port " + client["server.LocalPort"]);
-    return client.create("/").end("Hello World\n");
-  })
-   
+    client.end("Hello World\n");
+    setTimeout(_server.close, 200);
+  }) 
+
+
+

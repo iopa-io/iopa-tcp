@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Internet of Protocols Alliance (IOPA)
+ * Copyright (c) 2016 Internet of Protocols Alliance (IOPA)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,8 @@
  */
 
 // DEPENDENCIES
-var iopa = require('iopa');
 var TcpServer = require('./tcpServer.js');
-
-const IOPA = iopa.constants.IOPA,
-      SERVER = iopa.constants.SERVER
-	  
-const packageVersion = require('../../package.json').version;
+var TcpClient = require('./tcpClient.js');
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -30,9 +25,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * ********************************************************* */
 
 /**
- * Representes UDP Server
+ * Representes TCP Server
  *
- * @class UdpServer
+ * @class IopaTCP Server
  * @param app The IOPA AppBuilder dictionary
  * @constructor
  * @public
@@ -40,75 +35,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function IopaTCP(app) {
   _classCallCheck(this, IopaTCP);
 
-   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp] = {};
-   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.Version] = packageVersion;
-   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Udp][SERVER.LocalPort] =[];
-
-   app.createServer = this._appCreateServer.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
-   app.getServer = this._appGetServer.bind(this, app.getServer || function(){ return null; });
-  
-   this.app = app; 
-   this._servers = [];
- }
-
-IopaTCP.prototype._appCreateServer = function(next, transport, options){
-  if (transport !== "tcp:")
-    return next(transport, options);
-    
-   options = options || {};
-  
-  if (!this.app.properties[SERVER.IsBuilt]) 
-    this.app.build();   
-   
-  var server = new TcpServer(options, this.app.properties[SERVER.Pipeline]);
-  var that = this;
-  server.once("close", function(){that._servers.splice(that._servers.indexOf(server),1); server = null; });
-  this._servers.push(server);
-  return server;
-}
-
-IopaTCP.prototype._appGetServer = function(next, transport, query){
-  if (transport !== "tcp:")
-    return next(transport, query);
-    
-   query = query || {};
-  
-   if (!query)
-     return this._servers[0];
-  
-   if (typeof query == 'number')
-     return this._appGetServerByPort(query);
-     
-    if (typeof query == 'string')
-     return this._appGetServerById(query);
-   
-  return null;
-}
-
-IopaTCP.prototype._appGetServerByPort = function(port){
-  var _server = null;
-  this._servers.some(function(server){
-    if (server[SERVER.LocalPort] == port)
-	{
-		_server = server;
-		return true;
-	}
-    });
-  
-  return _server;
-}
-
-IopaTCP.prototype._appGetServerById = function(id){
-  var _server = null;
-  this._servers.some(function(server){
-    if (server[SERVER.Id] == id)
-	{
-		_server = server;
-		return true;
-	}
-    });
-  
-  return _server;
+  app.use(TcpClient);
+  app.use(TcpServer);
 }
 
 module.exports = IopaTCP;
