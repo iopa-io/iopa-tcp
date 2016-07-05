@@ -37,6 +37,7 @@ app.use("dispatch", function (context, next) {
 
  app.createContext = (function IopaTCP_create(next, urlStr) {
   var context = next(urlStr);
+  context.addResponse();
   context[IOPA.Body] = new iopaStream.OutgoingStream();
   return context;
 }).bind(this, app.createContext.bind(app));

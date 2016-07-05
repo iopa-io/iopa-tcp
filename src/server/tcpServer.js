@@ -35,13 +35,13 @@ function TcpServer(app) {
   _classCallCheck(this, TcpServer);
 
   this._app = app;
- 
+
   const packageVersion = require('../../package.json').version;
 
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp] = {};
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp][SERVER.Version] = packageVersion;
 
-  app.createServer = this.createServer_.bind(this, app.createServer || function(){ throw new Error("no registered transport provider"); });
+  app.createServer = this.createServer_.bind(this, app.createServer || function () { throw new Error("no registered transport provider"); });
 }
 
 /**
@@ -53,22 +53,30 @@ function TcpServer(app) {
  * @public
  */
 TcpServer.prototype.createServer_ = function TcpServer_createServer(next, scheme, options) {
-  if (scheme != "tcp:") 
-     return next(scheme, options)
+  if (scheme != "tcp:")
+    return next(scheme, options)
 
-   options = options || {};
-  
-  if (!this._app.properties[SERVER.IsBuilt]) 
-    this._app.build();   
+  options = options || {};
+
+  if (!this._app.properties[SERVER.IsBuilt])
+    this._app.build();
   var server = {};
 
-   server._tcp = net.createServer();
-   server._connections = {};
-   server.listen = this.listen_.bind(this, server);
-   server.connect = (function(url) { return this._app.dispatch(this._app.createContext(url)); }).bind(this);
-   server.close = this.close_.bind(this, server);
+  server._tcp = net.createServer();
+  server._connections = {};
+  server.listen = this.listen_.bind(this, server);
+  server.connect = function (url) {
+    return this._app.dispatch(
+      this._app.createContext(url,
+        {
+          "response": true,
+          [IOPA.Method]: IOPA.METHODS.connect
+        }
+      ));
+  }.bind(this);
+  server.close = this.close_.bind(this, server);
 
-   server._tcp.on("connection", this._onConnection.bind(this, server));
+  server._tcp.on("connection", this._onConnection.bind(this, server));
 
   return server;
 };
@@ -82,14 +90,14 @@ TcpServer.prototype.createServer_ = function TcpServer_createServer(next, scheme
  * @public
  */
 TcpServer.prototype.listen_ = function TcpServer_listen(server, options) {
-   options = options || {};
+  options = options || {};
 
   var port = options.port || options[IOPA.LocalPort] || 0;
   var address = options.address || options[IOPA.LocalAddress] || '0.0.0.0';
 
   server.port = port;
   server.address = address;
- 
+
   return new Promise(function (resolve, reject) {
     server._tcp.listen(server.port, server.address,
       function () {
@@ -103,20 +111,20 @@ TcpServer.prototype.listen_ = function TcpServer_listen(server, options) {
 
 TcpServer.prototype._onConnection = function TcpServer_onConnection(server, socket) {
   var context = this._app.Factory.createContext();
-  var response = context.response;
+  var response = context.addResponse();
   context[IOPA.Method] = IOPA.METHODS.connect;
 
   context[SERVER.TLS] = false;
   context[SERVER.RemoteAddress] = socket.remoteAddress;
   context[SERVER.RemotePort] = socket.remotePort;
-  context[SERVER.LocalAddress] = this._address;
-  context[SERVER.LocalPort] = this._port;
+  context[SERVER.LocalAddress] = server.address;
+  context[SERVER.LocalPort] = server.port;
   context[SERVER.RawStream] = socket;
   context[SERVER.RawTransport] = socket;
   context[SERVER.IsLocalOrigin] = false;
   context[SERVER.IsRequest] = true;
   context[SERVER.SessionId] = context[SERVER.LocalAddress] + ":" + context[SERVER.LocalPort] + "-" + context[SERVER.RemoteAddress] + ":" + context[SERVER.RemotePort];
- 
+
   response[SERVER.TLS] = context[SERVER.TLS];
   response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
   response[SERVER.RemotePort] = context[SERVER.RemotePort];

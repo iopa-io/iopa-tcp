@@ -66,7 +66,7 @@ describe('#TCPServer()', function () {
     });
 
     it('client should connect and server should receive client packets', function (done) {
-        app.dispatch(app.createContext("mqtt://127.0.0.1"))
+        app.dispatch(app.createContext("mqtt://127.0.0.1", {"response": true}))
             .then(function (client) {
                 console.log("Client is on port " + client["server.LocalPort"]);
                 events.on("test.Finish", function (data) {
@@ -111,7 +111,7 @@ describe('#TCPServer()', function () {
         });
 
         if (!process.env.PORT)
-            process.env.PORT = 1883;
+            process.env.PORT = 1884;
 
         var server2 =  app.createServer("tcp:")
         server2.listen( { port: process.env.PORT, address: process.env.IP })
@@ -150,7 +150,7 @@ describe('#TCPServer()', function () {
         var server3 = app.createServer("tcp:");
         server3.listen({ port: process.env.PORT, address: process.env.IP })
             .then(function () {
-                return app.dispatch(app.createContext("mqtt://127.0.0.1"))
+                return app.dispatch(app.createContext("mqtt://127.0.0.1", {"response": true}))
             })
             .then(function (client) {
                 client["server.CancelToken"].onCancelled(function (reason) {

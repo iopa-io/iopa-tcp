@@ -42,28 +42,7 @@ function TcpClient(app) {
 
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp] = {};
   app.properties[SERVER.Capabilities][IOPA.CAPABILITIES.Tcp][SERVER.Version] = packageVersion;
- 
-  app.createContext = this.createContext.bind(this, app.createContext.bind(app));
 }
-
-
-/**
- * Creates a new IOPA Request using a Tcp Url including host and port name
- *
- * @method create
- *
- * @param path string representation of ://127.0.0.1/hello
- * @param options object dictionary to override defaults
- * @returns context
- * @public
- */
-TcpClient.prototype.createContext = function IopaTCP_create(next, urlStr) {
-  var context = next(urlStr);
-  var response = context.response;
-  context[SERVER.RawStream] = new iopaStream.OutgoingStream();
-  response[SERVER.RawStream] = new iopaStream.IncomingStream();
-  return context;
-};
 
 /**
 * Dispatches a Tcp Request 
@@ -84,16 +63,14 @@ TcpClient.prototype.dispatch = function TcpClient_dispatch(channelContext, next)
       channelContext[SERVER.RemotePort],
       channelContext[SERVER.RemoteAddress],
       function () {
-        channelContext[SERVER.RawStream].pipe(socket);
+        channelContext[SERVER.RawStream] = socket;
         channelContext[SERVER.RawTransport] = socket;
         channelContext[SERVER.LocalAddress] = socket.localAddress;
         channelContext[SERVER.LocalPort] = socket.localPort;
-
-        socket.pipe(channelContext.response[SERVER.RawStream], { end: false });
+        channelContext.response[SERVER.RawStream] = socket;
         channelContext.response[SERVER.LocalAddress] = socket.localAddress;
         channelContext.response[SERVER.LocalPort] = socket.localPort;
 
-        channelContext[SERVER.RawStream].once('error', function (err) { socket.end(); })
         socket.once('finish', self._onDisconnect.bind(self, client, channelContext, null));
         socket.once('error', self._onDisconnect.bind(self, client, channelContext));
         channelContext[SERVER.SessionId] = channelContext[SERVER.LocalAddress] + ":" + channelContext[SERVER.LocalPort] + "-" + channelContext[SERVER.RemoteAddress] + ":" + channelContext[SERVER.RemotePort];
